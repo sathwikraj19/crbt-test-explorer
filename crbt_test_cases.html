@@ -5,11 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive CRBT Test Case Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDKs for Firestore and Authentication -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables (provided by Canvas environment, using placeholders for external deployment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-crbt-app-id'; // Default for non-Canvas environments
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "YOUR_FIREBASE_API_KEY", // Replace with your actual Firebase API Key if deploying outside Canvas
+            authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+            projectId: "YOUR_FIREBASE_PROJECT_ID",
+            storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+            appId: "YOUR_FIREBASE_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUserId = null;
+        let authReady = false;
+
+        // Listen for authentication state changes
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                authReady = true;
+                console.log("Authenticated as:", currentUserId);
+                // Now that we are authenticated, display and load test cases
+                window.dispatchEvent(new CustomEvent('authReady'));
+            } else {
+                // Sign in anonymously if no user is found or __initial_auth_token is not provided
+                try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase authentication error:", error);
+                }
+            }
+        });
+
+        // Make Firebase instances and userId available globally for the main script
+        window.firebaseApp = app;
+        window.firestoreDb = db;
+        window.firebaseAuth = auth;
+        window.getUserId = () => currentUserId;
+        window.isAuthReady = () => authReady;
+        window.getAppId = () => appId; // Expose appId as well
+    </script>
+
     <!-- Chosen Palette: Neutral Professional -->
     <!-- Application Structure Plan: The application is structured as an interactive dashboard rather than a static report. It features a main header, a filtering control panel, and a dynamic content area. The core information (test cases) is presented in a responsive grid of cards, which is a more modern and digestible format than a dense table. Users can filter the cards by "Scenario Group" (New User, Active User, Edge Cases) using interactive buttons. This structure was chosen because the source material is a technical specification, not narrative data. The primary user goal is to find and review specific test cases efficiently. A filterable dashboard directly supports this goal, enhancing navigation and making the content more accessible and less overwhelming than a long, static document. -->
-    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: A row of filter buttons -> Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive UI pattern for focusing on specific content subsets. Individual Test Cases -> Goal: Inform/Track Status -> Presentation: Styled cards with clear typographical hierarchy, Unicode icons (📋, ▶️, ✔️), and new Pass/Fail buttons. Interaction: Clicking Pass/Fail buttons updates the test case status visually and internally. Data Counter -> Goal: Inform -> Presentation: A simple text label. Interaction: Updates text with the count of visible cards upon filtering and also updates with pass/fail counts. Justification: Provides immediate feedback on the scope of the filtered view and testing progress. No charts (e.g., from Chart.js) are used, as there is no quantitative data in the source report that would lend itself to meaningful charting. -->
+    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: A row of filter buttons -> Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive UI pattern for focusing on specific content subsets. Individual Test Cases -> Goal: Inform/Track Status -> Presentation: Styled cards with clear typographical hierarchy, Unicode icons (📋, ▶️, ✔️), and new Pass/Fail buttons. Interaction: Clicking Pass/Fail buttons updates the test case status visually and internally, and now persists to Firestore. Double-clicking a 'Pass' or 'Fail' button deselects the status, reverting to 'Pending'. Data Counter -> Goal: Inform -> Presentation: A simple text label. Interaction: Updates text with the count of visible cards upon filtering and also updates with pass/fail counts. Justification: Provides immediate feedback on the scope of the filtered view and testing progress. No charts (e.g., from Chart.js) are used, as there is no quantitative data in the source report that would lend itself to meaningful charting. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -78,8 +134,11 @@
 
     </div>
 
-    <script>
-        const testCases = [
+    <script type="module">
+        import { doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initial test case data. Status will be overridden by Firestore.
+        let testCases = [
             {
                 id: 'CRBT-NEW-001',
                 category: 'new-user',
@@ -94,7 +153,7 @@
                     'B-Party answers the call (or call completes).'
                 ],
                 expectedResult: 'A-Party should receive a "Hangup SMS" (e.g., "You heard this tune, press Y to subscribe") AND a "Promotional SMS" upon call disconnection.',
-                status: 'pending'
+                status: 'pending' // Default status, will be updated from Firestore
             },
             {
                 id: 'CRBT-NEW-002',
@@ -244,6 +303,7 @@
 
         const grid = document.getElementById('test-case-grid');
         const counter = document.getElementById('case-counter');
+        let currentFilter = 'all'; // Keep track of the currently active filter
 
         function updateCaseCounter() {
             const visibleCards = Array.from(grid.children).filter(card => !card.classList.contains('hidden'));
@@ -254,12 +314,61 @@
             counter.textContent = `Showing ${totalVisible} of ${testCases.length} total test cases. (Passed: ${passedCount}, Failed: ${failedCount})`;
         }
 
+        async function saveStatusToFirestore(testCaseId, newStatus) {
+            if (!window.isAuthReady()) {
+                console.error("Firestore not ready: Authentication not complete.");
+                return;
+            }
+            const userId = window.getUserId();
+            const appId = window.getAppId(); // Get appId from global
+            if (!userId) {
+                console.error("User ID not available for saving status.");
+                return;
+            }
+
+            try {
+                const docRef = doc(window.firestoreDb, `artifacts/${appId}/users/${userId}/crbt_test_cases`, testCaseId);
+                await setDoc(docRef, { status: newStatus }, { merge: true });
+                console.log(`Status for ${testCaseId} updated to ${newStatus} in Firestore.`);
+            } catch (e) {
+                console.error("Error updating document: ", e);
+            }
+        }
+
+        function updateCardDisplayStatus(cardElement, newStatus) {
+            cardElement.dataset.status = newStatus;
+            const statusIndicator = cardElement.querySelector('.status-indicator');
+            const passButton = cardElement.querySelector('.status-pass');
+            const failButton = cardElement.querySelector('.status-fail');
+
+            statusIndicator.className = 'status-indicator inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize';
+            passButton.className = 'status-button status-pass text-sm font-medium py-1.5 px-3 rounded-full border border-green-500 text-green-700 hover:bg-green-100';
+            failButton.className = 'status-button status-fail text-sm font-medium py-1.5 px-3 rounded-full border border-red-500 text-red-700 hover:bg-red-100';
+
+            if (newStatus === 'pass') {
+                statusIndicator.classList.add('bg-green-100', 'text-green-800');
+                statusIndicator.textContent = 'Passed';
+                passButton.classList.add('active');
+            } else if (newStatus === 'fail') {
+                statusIndicator.classList.add('bg-red-100', 'text-red-800');
+                statusIndicator.textContent = 'Failed';
+                failButton.classList.add('active');
+            } else { // 'pending'
+                statusIndicator.classList.add('bg-gray-100', 'text-gray-600');
+                statusIndicator.textContent = 'Pending';
+                // Remove active classes from buttons if status is pending
+                passButton.classList.remove('active');
+                failButton.classList.remove('active');
+            }
+            updateCaseCounter();
+        }
+
         function createTestCaseCard(tc) {
             const card = document.createElement('div');
             card.className = `test-card bg-white rounded-lg shadow-md border border-gray-200/80 p-6 relative`;
             card.dataset.category = tc.category;
             card.dataset.id = tc.id;
-            card.dataset.status = tc.status;
+            card.dataset.status = tc.status; // Initial status from data
 
             const preConditionsHtml = tc.preConditions.map(item => `<li>${item}</li>`).join('');
             const testStepsHtml = tc.testSteps.map(item => `<li>${item}</li>`).join('');
@@ -288,51 +397,34 @@
                 </div>
             `;
 
-            const statusIndicator = card.querySelector('.status-indicator');
+            // Set initial status display
+            updateCardDisplayStatus(card, tc.status);
+
             const passButton = card.querySelector('.status-pass');
             const failButton = card.querySelector('.status-fail');
 
-            function updateCardStatus(newStatus) {
-                card.dataset.status = newStatus;
-                const testCaseIndex = testCases.findIndex(t => t.id === tc.id);
-                if (testCaseIndex !== -1) {
-                    testCases[testCaseIndex].status = newStatus;
-                }
-
-                statusIndicator.className = 'status-indicator inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize';
-                passButton.className = 'status-button status-pass text-sm font-medium py-1.5 px-3 rounded-full border border-green-500 text-green-700 hover:bg-green-100';
-                failButton.className = 'status-button status-fail text-sm font-medium py-1.5 px-3 rounded-full border border-red-500 text-red-700 hover:bg-red-100';
-
-                if (newStatus === 'pass') {
-                    statusIndicator.classList.add('bg-green-100', 'text-green-800');
-                    statusIndicator.textContent = 'Passed';
-                    passButton.classList.add('active');
-                } else if (newStatus === 'fail') {
-                    statusIndicator.classList.add('bg-red-100', 'text-red-800');
-                    statusIndicator.textContent = 'Failed';
-                    failButton.classList.add('active');
-                } else {
-                    statusIndicator.classList.add('bg-gray-100', 'text-gray-600');
-                    statusIndicator.textContent = 'Pending';
-                    passButton.classList.add('status-pending');
-                    failButton.classList.add('status-pending');
-                }
-                updateCaseCounter();
-            }
-
-            // Set initial status
-            updateCardStatus(tc.status);
-
-            passButton.addEventListener('click', () => updateCardStatus('pass'));
-            failButton.addEventListener('click', () => updateCardStatus('fail'));
+            // Single click to set status
+            passButton.addEventListener('click', async () => {
+                const currentStatus = card.dataset.status;
+                const newStatus = (currentStatus === 'pass') ? 'pending' : 'pass';
+                updateCardDisplayStatus(card, newStatus);
+                await saveStatusToFirestore(tc.id, newStatus);
+            });
+            failButton.addEventListener('click', async () => {
+                const currentStatus = card.dataset.status;
+                const newStatus = (currentStatus === 'fail') ? 'pending' : 'fail';
+                updateCardDisplayStatus(card, newStatus);
+                await saveStatusToFirestore(tc.id, newStatus);
+            });
 
             return card;
         }
 
         function displayTestCases(filter = 'all') {
             grid.innerHTML = '';
+            currentFilter = filter; // Update current filter
             
-            const filteredCases = testCases.filter(tc => filter === 'all' || tc.category === filter);
+            const filteredCases = testCases.filter(tc => currentFilter === 'all' || tc.category === currentFilter);
             
             filteredCases.forEach(tc => {
                 grid.appendChild(createTestCaseCard(tc));
@@ -350,7 +442,54 @@
             });
         });
 
-        window.onload = () => displayTestCases();
+        // Main loading logic
+        window.addEventListener('authReady', async () => {
+            if (!window.firestoreDb || !window.getUserId()) {
+                console.error("Firestore or User ID not available after authReady.");
+                return;
+            }
+
+            const userId = window.getUserId();
+            const appId = window.getAppId(); // Get appId from global
+            const testCasesCollectionRef = collection(window.firestoreDb, `artifacts/${appId}/users/${userId}/crbt_test_cases`);
+
+            // Listen for real-time updates to test case statuses
+            onSnapshot(testCasesCollectionRef, (snapshot) => {
+                snapshot.docChanges().forEach(change => {
+                    const testCaseId = change.doc.id;
+                    const newStatus = change.doc.data().status;
+                    
+                    // Find the corresponding test case in our local array
+                    const localTestCase = testCases.find(tc => tc.id === testCaseId);
+                    if (localTestCase) {
+                        localTestCase.status = newStatus;
+                        // Find the card element and update its display
+                        const cardElement = grid.querySelector(`[data-id="${testCaseId}"]`);
+                        if (cardElement) {
+                            updateCardDisplayStatus(cardElement, newStatus);
+                        } else {
+                            // If the card isn't currently displayed (due to filter),
+                            // we still update the local data and then re-display if needed.
+                            displayTestCases(currentFilter);
+                        }
+                    } else {
+                        console.warn(`Test case with ID ${testCaseId} not found in local data.`);
+                    }
+                });
+                // Initial display or re-display after changes
+                displayTestCases(currentFilter);
+            }, (error) => {
+                console.error("Error listening to Firestore updates:", error);
+            });
+        });
+
+        // Ensure initial display happens after auth is ready
+        window.onload = () => {
+            if (window.isAuthReady()) {
+                window.dispatchEvent(new CustomEvent('authReady'));
+            }
+            // If not ready, the 'authReady' listener will handle it once authenticated.
+        };
     </script>
 
 </body>
