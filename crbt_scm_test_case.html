@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Renewal Test Case Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chosen Palette: Neutral Professional -->
+    <!-- Application Structure Plan: The application is structured as an interactive dashboard. It features a main header, a filtering control panel with pack-based categories, and a dynamic content area. Test cases are presented as responsive cards. Users can filter cases by 'Pack Name' (Monthly, Weekly, Daily) using buttons. Crucially, users can now add new test cases via a modal form and delete existing ones directly from their cards. This structure is chosen to facilitate efficient management and exploration of renewal test scenarios, providing immediate visual feedback on status and allowing dynamic modification of the test suite. -->
+    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: Filter buttons based on 'Pack Name' categories. Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive navigation for specific pack types. Individual Test Cases -> Goal: Inform/Track Status/Manage -> Presentation: Styled cards displaying Scenario, Pack Name, and other details. Includes Pass/Fail buttons for status tracking, a Delete button for removal, and an Edit button for modification. Interaction: Click Pass/Fail to toggle status (persisted via localStorage); click Delete to remove; click Edit to open pre-populated modal for modification. Add New Test Case -> Goal: Manage/Extend -> Presentation: Modal form with input fields for all test case properties. Interaction: Form submission adds a new test case to the data and re-renders the grid. Justification: Provides a structured way to extend the test suite dynamically. Edit Test Case -> Goal: Manage/Modify -> Presentation: Modal form pre-populated with existing data. Interaction: Form submission updates the existing test case in data and re-renders. Justification: Allows for correction and refinement of test cases. Data Counter -> Goal: Inform -> Presentation: Text label. Interaction: Updates counts of visible, passed, and failed cases upon filtering or modification. Justification: Offers immediate progress feedback. Generate Excel Report -> Goal: Export/Report -> Presentation: Button. Interaction: Downloads a CSV file with all current test cases and their statuses. Justification: Provides an offline, shareable record of the test suite. No charts are used as the data is primarily textual and categorical, not quantitative for charting. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+        }
+        .filter-btn {
+            transition: all 0.3s ease;
+        }
+        .filter-btn.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+        .test-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            will-change: transform;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-content {
+            flex-grow: 1;
+        }
+        .status-button {
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+        }
+        .status-button:active {
+            transform: scale(0.98);
+        }
+        .status-pass.active {
+            background-color: #22c55e; /* Green 500 */
+            color: white;
+        }
+        .status-fail.active {
+            background-color: #ef4444; /* Red 500 */
+            color: white;
+        }
+        .status-pending {
+            background-color: #f3f4f6; /* Gray 100 */
+            color: #4b5563; /* Gray 600 */
+        }
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 90%;
+            width: 600px; /* Wider modal for more fields */
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .form-grid .full-width {
+                grid-column: span 2;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Renewal Test Case Explorer</h1>
+            <p class="mt-2 text-lg text-gray-600">An interactive tool for managing and tracking renewal service test cases.</p>
+        </header>
+
+        <div id="controls" class="mb-8 p-4 bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 sticky top-4 z-10">
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <span class="font-semibold text-gray-700 mr-3">Filter by Pack:</span>
+                <button data-filter="all" class="filter-btn active text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">All Packs</button>
+                <button data-filter="monthly-pack" class="filter-btn text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">Monthly Pack</button>
+                <button data-filter="weekly-pack" class="filter-btn text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">Weekly Pack</button>
+                <button data-filter="daily-pack" class="filter-btn text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">Daily Pack</button>
+            </div>
+            <p id="case-counter" class="text-center text-sm text-gray-500 mt-3"></p>
+            <div class="flex justify-center mt-4 gap-4">
+                <button id="generate-excel-btn" class="bg-purple-600 text-white font-medium py-2 px-5 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200">
+                    Generate Excel Report
+                </button>
+                <button id="add-test-case-btn" class="bg-blue-600 text-white font-medium py-2 px-5 rounded-full shadow-lg hover:bg-blue-700 transition-colors duration-200">
+                    Add New Test Case
+                </button>
+            </div>
+        </div>
+        
+        <main id="test-case-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </main>
+
+    </div>
+
+    <!-- Add Test Case Modal -->
+    <div id="add-test-case-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-6 text-gray-900">Add New Test Case</h2>
+            <form id="add-test-case-form" class="space-y-4">
+                <div class="form-grid">
+                    <div>
+                        <label for="new-test-id" class="block text-sm font-medium text-gray-700">Test Case ID (e.g., RENEWAL-CUSTOM-001)</label>
+                        <input type="text" id="new-test-id" name="id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="new-test-category" class="block text-sm font-medium text-gray-700">Pack Category</label>
+                        <select id="new-test-category" name="category" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                            <option value="monthly-pack">Monthly Pack</option>
+                            <option value="weekly-pack">Weekly Pack</option>
+                            <option value="daily-pack">Daily Pack</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="full-width">
+                        <label for="new-test-scenario" class="block text-sm font-medium text-gray-700">Scenario</label>
+                        <textarea id="new-test-scenario" name="scenario" rows="2" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                    <div>
+                        <label for="new-test-pack-name" class="block text-sm font-medium text-gray-700">Pack Name</label>
+                        <input type="text" id="new-test-pack-name" name="packName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="new-test-msisdn" class="block text-sm font-medium text-gray-700">MSISDN</label>
+                        <input type="text" id="new-test-msisdn" name="msisdn" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="new-test-current-balance" class="block text-sm font-medium text-gray-700">Current Balance</label>
+                        <input type="text" id="new-test-current-balance" name="currentBalance" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="new-test-renewal-date" class="block text-sm font-medium text-gray-700">Pack Renewal Date</label>
+                        <input type="text" id="new-test-renewal-date" name="packRenewalDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div class="full-width">
+                        <label for="new-test-prereneval-sms" class="block text-sm font-medium text-gray-700">Pre-Renewal SMS</label>
+                        <textarea id="new-test-prereneval-sms" name="preRenewalSMS" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                    <div class="full-width">
+                        <label for="new-test-postren-charging" class="block text-sm font-medium text-gray-700">Post-Ren/Charging</label>
+                        <textarea id="new-test-postren-charging" name="postRenCharging" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                    <div class="full-width">
+                        <label for="new-test-observation" class="block text-sm font-medium text-gray-700">Observation</label>
+                        <textarea id="new-test-observation" name="observation" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" id="cancel-add-test-case" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">Add Test Case</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Test Case Modal -->
+    <div id="edit-test-case-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-6 text-gray-900">Edit Test Case</h2>
+            <form id="edit-test-case-form" class="space-y-4">
+                <input type="hidden" id="edit-original-id" name="originalId">
+                <div class="form-grid">
+                    <div>
+                        <label for="edit-test-id" class="block text-sm font-medium text-gray-700">Test Case ID</label>
+                        <input type="text" id="edit-test-id" name="id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="edit-test-category" class="block text-sm font-medium text-gray-700">Pack Category</label>
+                        <select id="edit-test-category" name="category" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                            <option value="monthly-pack">Monthly Pack</option>
+                            <option value="weekly-pack">Weekly Pack</option>
+                            <option value="daily-pack">Daily Pack</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="full-width">
+                        <label for="edit-test-scenario" class="block text-sm font-medium text-gray-700">Scenario</label>
+                        <textarea id="edit-test-scenario" name="scenario" rows="2" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                    <div>
+                        <label for="edit-test-pack-name" class="block text-sm font-medium text-gray-700">Pack Name</label>
+                        <input type="text" id="edit-test-pack-name" name="packName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="edit-test-msisdn" class="block text-sm font-medium text-gray-700">MSISDN</label>
+                        <input type="text" id="edit-test-msisdn" name="msisdn" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="edit-test-current-balance" class="block text-sm font-medium text-gray-700">Current Balance</label>
+                        <input type="text" id="edit-test-current-balance" name="currentBalance" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="edit-test-renewal-date" class="block text-sm font-medium text-gray-700">Pack Renewal Date</label>
+                        <input type="text" id="edit-test-renewal-date" name="packRenewalDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div class="full-width">
+                        <label for="edit-test-prereneval-sms" class="block text-sm font-medium text-gray-700">Pre-Renewal SMS</label>
+                        <textarea id="edit-test-prereneval-sms" name="preRenewalSMS" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                    <div class="full-width">
+                        <label for="edit-test-postren-charging" class="block text-sm font-medium text-gray-700">Post-Ren/Charging</label>
+                        <textarea id="edit-test-postren-charging" name="postRenCharging" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                    <div class="full-width">
+                        <label for="edit-test-observation" class="block text-sm font-medium text-gray-700">Observation</label>
+                        <textarea id="edit-test-observation" name="observation" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" id="cancel-edit-test-case" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initial test case data based on the provided image
+        // This array will be overwritten if data exists in localStorage
+        let testCases = [
+            {
+                id: 'RENEWAL-M-001',
+                category: 'monthly-pack',
+                scenario: 'Renewal Fall Back for Monthly',
+                packName: 'Monthly Pack',
+                msisdn: '',
+                currentBalance: '',
+                packRenewalDate: '',
+                preRenewalSMS: '',
+                postRenCharging: '',
+                testResult: '', // This will hold the manual result if entered in Excel
+                observation: '',
+                status: 'pending' // Internal status for Pass/Fail/Pending
+            },
+            {
+                id: 'RENEWAL-W-002',
+                category: 'weekly-pack',
+                scenario: 'Normal Renewal for Weekly successful sms with promotional sms',
+                packName: 'Weekly Pack',
+                msisdn: '',
+                currentBalance: '',
+                packRenewalDate: '',
+                preRenewalSMS: '',
+                postRenCharging: '',
+                testResult: '',
+                observation: '',
+                status: 'pending'
+            },
+            {
+                id: 'RENEWAL-W-003',
+                category: 'weekly-pack',
+                scenario: 'Renewal Fall Back for Weekly charging successful sms with promotional sms',
+                packName: 'Weekly Pack',
+                msisdn: '',
+                currentBalance: '',
+                packRenewalDate: '',
+                preRenewalSMS: '',
+                postRenCharging: '',
+                testResult: '',
+                observation: '',
+                status: 'pending'
+            },
+            {
+                id: 'RENEWAL-D-004',
+                category: 'daily-pack',
+                scenario: 'Normal Renewal for Monthly success sms no promotional sms should be received',
+                packName: 'Daily Pack',
+                msisdn: '',
+                currentBalance: '',
+                packRenewalDate: '',
+                preRenewalSMS: '',
+                postRenCharging: '',
+                testResult: '',
+                observation: '',
+                status: 'pending'
+            },
+            {
+                id: 'RENEWAL-M-005',
+                category: 'monthly-pack',
+                scenario: 'Fail to renewal',
+                packName: 'Monthly Pack',
+                msisdn: '',
+                currentBalance: '',
+                packRenewalDate: '',
+                preRenewalSMS: '',
+                postRenCharging: '',
+                testResult: '',
+                observation: '',
+                status: 'pending'
+            }
+        ];
+
+        const grid = document.getElementById('test-case-grid');
+        const counter = document.getElementById('case-counter');
+        let currentFilter = 'all'; // Keep track of the currently active filter
+
+        // Function to load testCases array from localStorage
+        function loadTestCasesFromLocalStorage() {
+            const storedData = localStorage.getItem('renewalTestCasesData'); // Changed localStorage key
+            if (storedData) {
+                try {
+                    const parsedData = JSON.parse(storedData);
+                    if (Array.isArray(parsedData) && parsedData.length > 0) {
+                        testCases = parsedData; // Overwrite initial array with stored data
+                    }
+                } catch (e) {
+                    console.error("Error parsing localStorage data, using default test cases:", e);
+                }
+            }
+        }
+
+        // Function to save testCases array to localStorage
+        function saveTestCasesToLocalStorage() {
+            localStorage.setItem('renewalTestCasesData', JSON.stringify(testCases)); // Changed localStorage key
+        }
+
+        function updateCaseCounter() {
+            const visibleCards = Array.from(grid.children).filter(card => !card.classList.contains('hidden'));
+            const passedCount = visibleCards.filter(card => card.dataset.status === 'pass').length;
+            const failedCount = visibleCards.filter(card => card.dataset.status === 'fail').length;
+            const totalVisible = visibleCards.length;
+
+            counter.textContent = `Showing ${totalVisible} of ${testCases.length} total test cases. (Passed: ${passedCount}, Failed: ${failedCount})`;
+        }
+
+        function updateCardDisplayStatus(cardElement, newStatus) {
+            const testCaseId = cardElement.dataset.id;
+            const testCaseIndex = testCases.findIndex(tc => tc.id === testCaseId);
+            if (testCaseIndex !== -1) {
+                testCases[testCaseIndex].status = newStatus; // Update the in-memory array
+            }
+
+            cardElement.dataset.status = newStatus;
+            const statusIndicator = cardElement.querySelector('.status-indicator');
+            const passButton = cardElement.querySelector('.status-pass');
+            const failButton = cardElement.querySelector('.status-fail');
+
+            statusIndicator.className = 'status-indicator inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize';
+            passButton.className = 'status-button status-pass text-sm font-medium py-1.5 px-3 rounded-full border border-green-500 text-green-700 hover:bg-green-100';
+            failButton.className = 'status-button status-fail text-sm font-medium py-1.5 px-3 rounded-full border border-red-500 text-red-700 hover:bg-red-100';
+
+            if (newStatus === 'pass') {
+                statusIndicator.classList.add('bg-green-100', 'text-green-800');
+                statusIndicator.textContent = 'Passed';
+                passButton.classList.add('active');
+            } else if (newStatus === 'fail') {
+                statusIndicator.classList.add('bg-red-100', 'text-red-800');
+                statusIndicator.textContent = 'Failed';
+                failButton.classList.add('active');
+            } else { // 'pending'
+                statusIndicator.classList.add('bg-gray-100', 'text-gray-600');
+                statusIndicator.textContent = 'Pending';
+                passButton.classList.remove('active');
+                failButton.classList.remove('active');
+            }
+            updateCaseCounter();
+        }
+
+        function createTestCaseCard(tc) {
+            const card = document.createElement('div');
+            card.className = `test-card bg-white rounded-lg shadow-md border border-gray-200/80 p-6 relative`;
+            card.dataset.category = tc.category;
+            card.dataset.id = tc.id;
+            card.dataset.status = tc.status; // Initial status from data
+
+            card.innerHTML = `
+                <div class="card-header mb-4 flex justify-between items-center">
+                    <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">${tc.id}</span>
+                    <div class="flex gap-2">
+                        <button class="edit-test-case-btn text-gray-500 hover:text-gray-700 text-sm font-medium px-2 py-1 rounded-full" data-id="${tc.id}">
+                            &#x270E; Edit
+                        </button>
+                        <button class="delete-test-case-btn text-red-500 hover:text-red-700 text-sm font-medium px-2 py-1 rounded-full" data-id="${tc.id}">
+                            &#x2715; Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <p class="font-semibold text-gray-800 mb-2">Scenario: ${tc.scenario}</p>
+                    <p class="text-gray-700 text-sm mb-4">Pack Name: ${tc.packName}</p>
+                    
+                    ${tc.msisdn ? `<p class="text-gray-600 text-sm">MSISDN: ${tc.msisdn}</p>` : ''}
+                    ${tc.currentBalance ? `<p class="text-gray-600 text-sm">Current Balance: ${tc.currentBalance}</p>` : ''}
+                    ${tc.packRenewalDate ? `<p class="text-gray-600 text-sm">Pack Renewal Date: ${tc.packRenewalDate}</p>` : ''}
+                    ${tc.preRenewalSMS ? `<p class="text-gray-600 text-sm">Pre-Renewal SMS: ${tc.preRenewalSMS}</p>` : ''}
+                    ${tc.postRenCharging ? `<p class="text-gray-600 text-sm">Post-Ren/Charging: ${tc.postRenCharging}</p>` : ''}
+                    ${tc.testResult ? `<p class="text-gray-600 text-sm">Test Result (Manual): ${tc.testResult}</p>` : ''}
+                    ${tc.observation ? `<p class="text-gray-600 text-sm">Observation: ${tc.observation}</p>` : ''}
+                </div>
+                <div class="card-footer mt-auto pt-4 border-t border-gray-200 flex justify-between items-center">
+                    <span class="status-indicator inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize"></span>
+                    <div class="flex gap-2">
+                        <button class="status-button status-pass text-sm font-medium py-1.5 px-3 rounded-full border border-green-500 text-green-700 hover:bg-green-100" data-action="pass">Pass</button>
+                        <button class="status-button status-fail text-sm font-medium py-1.5 px-3 rounded-full border border-red-500 text-red-700 hover:bg-red-100" data-action="fail">Fail</button>
+                    </div>
+                </div>
+            `;
+
+            updateCardDisplayStatus(card, tc.status);
+
+            const passButton = card.querySelector('.status-pass');
+            const failButton = card.querySelector('.status-fail');
+            const deleteButton = card.querySelector('.delete-test-case-btn');
+            const editButton = card.querySelector('.edit-test-case-btn'); // Get the new edit button
+
+            passButton.addEventListener('click', () => {
+                const currentStatus = card.dataset.status;
+                const newStatus = (currentStatus === 'pass') ? 'pending' : 'pass';
+                updateCardDisplayStatus(card, newStatus);
+                saveTestCasesToLocalStorage();
+            });
+            failButton.addEventListener('click', () => {
+                const currentStatus = card.dataset.status;
+                const newStatus = (currentStatus === 'fail') ? 'pending' : 'fail';
+                updateCardDisplayStatus(card, newStatus);
+                saveTestCasesToLocalStorage();
+            });
+
+            deleteButton.addEventListener('click', () => {
+                if (confirm(`Are you sure you want to delete test case ${tc.id} - "${tc.scenario}"?`)) {
+                    deleteTestCase(tc.id);
+                }
+            });
+
+            editButton.addEventListener('click', () => {
+                openEditModal(tc.id); // Open edit modal with this test case's ID
+            });
+
+            return card;
+        }
+
+        function displayTestCases(filter = 'all') {
+            grid.innerHTML = '';
+            currentFilter = filter;
+            
+            const filteredCases = testCases.filter(tc => filter === 'all' || tc.category === filter);
+            
+            filteredCases.forEach(tc => {
+                grid.appendChild(createTestCaseCard(tc));
+            });
+
+            updateCaseCounter();
+        }
+
+        function deleteTestCase(idToDelete) {
+            testCases = testCases.filter(tc => tc.id !== idToDelete);
+            saveTestCasesToLocalStorage();
+            displayTestCases(currentFilter);
+        }
+        
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                displayTestCases(button.dataset.filter);
+            });
+        });
+
+        // Add New Test Case Modal Logic
+        const addTestCaseBtn = document.getElementById('add-test-case-btn');
+        const addTestCaseModal = document.getElementById('add-test-case-modal');
+        const addTestCaseForm = document.getElementById('add-test-case-form');
+        const cancelAddTestCaseBtn = document.getElementById('cancel-add-test-case');
+
+        addTestCaseBtn.addEventListener('click', () => {
+            addTestCaseModal.classList.remove('hidden');
+        });
+
+        cancelAddTestCaseBtn.addEventListener('click', () => {
+            addTestCaseModal.classList.add('hidden');
+            addTestCaseForm.reset();
+        });
+
+        addTestCaseForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const newId = document.getElementById('new-test-id').value.trim();
+            const newCategory = document.getElementById('new-test-category').value;
+            const newScenario = document.getElementById('new-test-scenario').value.trim();
+            const newPackName = document.getElementById('new-test-pack-name').value.trim();
+            const newMsisdn = document.getElementById('new-test-msisdn').value.trim();
+            const newCurrentBalance = document.getElementById('new-test-current-balance').value.trim();
+            const newPackRenewalDate = document.getElementById('new-test-renewal-date').value.trim();
+            const newPreRenewalSMS = document.getElementById('new-test-prereneval-sms').value.trim();
+            const newPostRenCharging = document.getElementById('new-test-postren-charging').value.trim();
+            const newObservation = document.getElementById('new-test-observation').value.trim();
+
+            if (!newId || !newScenario || !newPackName) {
+                alert('Please fill in all required fields: Test Case ID, Scenario, and Pack Name.');
+                return;
+            }
+
+            if (testCases.some(tc => tc.id === newId)) {
+                alert(`Test Case ID "${newId}" already exists. Please use a unique ID.`);
+                return;
+            }
+
+            const newTestCase = {
+                id: newId,
+                category: newCategory,
+                scenario: newScenario,
+                packName: newPackName,
+                msisdn: newMsisdn,
+                currentBalance: newCurrentBalance,
+                packRenewalDate: newPackRenewalDate,
+                preRenewalSMS: newPreRenewalSMS,
+                postRenCharging: newPostRenCharging,
+                testResult: '', // This is for manual input in Excel, not directly set here
+                observation: newObservation,
+                status: 'pending'
+            };
+
+            testCases.push(newTestCase);
+            saveTestCasesToLocalStorage();
+            displayTestCases(currentFilter);
+            
+            addTestCaseModal.classList.add('hidden');
+            addTestCaseForm.reset();
+        });
+
+        // Edit Test Case Modal Logic
+        const editTestCaseModal = document.getElementById('edit-test-case-modal');
+        const editTestCaseForm = document.getElementById('edit-test-case-form');
+        const cancelEditTestCaseBtn = document.getElementById('cancel-edit-test-case');
+        const editOriginalIdInput = document.getElementById('edit-original-id');
+
+        function openEditModal(testCaseId) {
+            const tcToEdit = testCases.find(tc => tc.id === testCaseId);
+            if (!tcToEdit) {
+                console.error("Test case not found for editing:", testCaseId);
+                return;
+            }
+
+            // Populate the edit form fields
+            document.getElementById('edit-original-id').value = tcToEdit.id; // Store original ID for lookup
+            document.getElementById('edit-test-id').value = tcToEdit.id;
+            document.getElementById('edit-test-category').value = tcToEdit.category;
+            document.getElementById('edit-test-scenario').value = tcToEdit.scenario;
+            document.getElementById('edit-test-pack-name').value = tcToEdit.packName;
+            document.getElementById('edit-test-msisdn').value = tcToEdit.msisdn;
+            document.getElementById('edit-test-current-balance').value = tcToEdit.currentBalance;
+            document.getElementById('edit-test-renewal-date').value = tcToEdit.packRenewalDate;
+            document.getElementById('edit-test-prereneval-sms').value = tcToEdit.preRenewalSMS;
+            document.getElementById('edit-test-postren-charging').value = tcToEdit.postRenCharging;
+            document.getElementById('edit-test-observation').value = tcToEdit.observation;
+
+            editTestCaseModal.classList.remove('hidden'); // Show the modal
+        }
+
+        cancelEditTestCaseBtn.addEventListener('click', () => {
+            editTestCaseModal.classList.add('hidden');
+            editTestCaseForm.reset();
+        });
+
+        editTestCaseForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const originalId = document.getElementById('edit-original-id').value;
+            const updatedId = document.getElementById('edit-test-id').value.trim();
+            const updatedCategory = document.getElementById('edit-test-category').value;
+            const updatedScenario = document.getElementById('edit-test-scenario').value.trim();
+            const updatedPackName = document.getElementById('edit-test-pack-name').value.trim();
+            const updatedMsisdn = document.getElementById('edit-test-msisdn').value.trim();
+            const updatedCurrentBalance = document.getElementById('edit-test-current-balance').value.trim();
+            const updatedPackRenewalDate = document.getElementById('edit-test-renewal-date').value.trim();
+            const updatedPreRenewalSMS = document.getElementById('edit-test-prereneval-sms').value.trim();
+            const updatedPostRenCharging = document.getElementById('edit-test-postren-charging').value.trim();
+            const updatedObservation = document.getElementById('edit-test-observation').value.trim();
+
+            if (!updatedId || !updatedScenario || !updatedPackName) {
+                alert('Please fill in all required fields: Test Case ID, Scenario, and Pack Name.');
+                return;
+            }
+
+            // Check for duplicate ID if ID was changed
+            if (updatedId !== originalId && testCases.some(tc => tc.id === updatedId)) {
+                alert(`Test Case ID "${updatedId}" already exists. Please use a unique ID.`);
+                return;
+            }
+
+            const testCaseIndex = testCases.findIndex(tc => tc.id === originalId);
+            if (testCaseIndex !== -1) {
+                testCases[testCaseIndex] = {
+                    ...testCases[testCaseIndex], // Keep existing properties like status
+                    id: updatedId,
+                    category: updatedCategory,
+                    scenario: updatedScenario,
+                    packName: updatedPackName,
+                    msisdn: updatedMsisdn,
+                    currentBalance: updatedCurrentBalance,
+                    packRenewalDate: updatedPackRenewalDate,
+                    preRenewalSMS: updatedPreRenewalSMS,
+                    postRenCharging: updatedPostRenCharging,
+                    observation: updatedObservation
+                };
+                saveTestCasesToLocalStorage();
+                displayTestCases(currentFilter);
+                editTestCaseModal.classList.add('hidden');
+                editTestCaseForm.reset();
+            } else {
+                console.error("Original test case not found for update:", originalId);
+                alert("Error: Test case not found for update.");
+            }
+        });
+
+
+        // Function to generate and download CSV
+        function generateExcelFile() {
+            const currentDate = new Date().toLocaleDateString('en-GB');
+            const projectName = "Renewal Service Test Suite";
+            const moduleName = "Pack Renewal & SMS Notifications";
+            const version = "1.0";
+
+            let csvContent = "";
+
+            // Add Header/Metadata
+            csvContent += `"Project:","${projectName}"\n`;
+            csvContent += `"Module:","${moduleName}"\n`;
+            csvContent += `"Date:","${currentDate}"\n`;
+            csvContent += `"Version:","${version}"\n`;
+            csvContent += "\n"; // Empty line for separation
+
+            // Add Column Headers matching the image and additional fields
+            csvContent += "No.,Scenario,Pack Name,MSISDN,Current Balance,Pack Renewal Date,Pre-Renewal SMS,Post-Ren/Charging,Test Result (Manual),Observation,App Status\n";
+
+            testCases.forEach((tc, index) => {
+                // Escape commas and newlines within fields by enclosing them in double quotes
+                const escapeCsvField = (field) => {
+                    if (typeof field === 'string') {
+                        // Replace double quotes with two double quotes, then wrap in double quotes
+                        return `"${field.replace(/"/g, '""').replace(/\n/g, '\r\n')}"`; // Handle newlines
+                    } else if (Array.isArray(field)) {
+                        // For arrays, join with a semicolon and escape the whole string
+                        return `"${field.map(item => item.replace(/"/g, '""').replace(/\n/g, '\r\n')).join('; ')}"`;
+                    }
+                    return field; // For numbers, booleans etc.
+                };
+
+                const scenario = escapeCsvField(tc.scenario);
+                const packName = escapeCsvField(tc.packName);
+                const msisdn = escapeCsvField(tc.msisdn);
+                const currentBalance = escapeCsvField(tc.currentBalance);
+                const packRenewalDate = escapeCsvField(tc.packRenewalDate);
+                const preRenewalSMS = escapeCsvField(tc.preRenewalSMS);
+                const postRenCharging = escapeCsvField(tc.postRenCharging);
+                const testResultManual = escapeCsvField(tc.testResult); // Manual Test Result from image
+                const observation = escapeCsvField(tc.observation);
+                const appStatus = escapeCsvField(tc.status); // Status from the interactive app (Pass/Fail/Pending)
+
+                csvContent += `${index + 1},${scenario},${packName},${msisdn},${currentBalance},${packRenewalDate},${preRenewalSMS},${postRenCharging},${testResultManual},${observation},${appStatus}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `Renewal_Test_Report_${currentDate.replace(/\//g, '-')}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Your browser does not support downloading files directly. Please copy the content and paste it into a spreadsheet program.');
+            }
+        }
+
+        document.getElementById('generate-excel-btn').addEventListener('click', generateExcelFile);
+
+        // Load test cases (including custom ones) when the page loads
+        window.onload = () => {
+            loadTestCasesFromLocalStorage();
+            displayTestCases();
+        };
+    </script>
+
+</body>
+</html>
