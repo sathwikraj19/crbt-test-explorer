@@ -7,9 +7,69 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Firebase SDKs for Firestore and Authentication -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration - PROVIDED BY USER
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTBFvZo4WEP0SpIiUsgAdH0GnyIuv3Fng",
+            authDomain: "test-case-sheet.firebaseapp.com",
+            projectId: "test-case-sheet",
+            storageBucket: "test-case-sheet.firebasestorage.app",
+            messagingSenderId: "618641553048",
+            appId: "1:618641553048:web:0a62cd76c82387f43282ed",
+            measurementId: "G-4MNL7X8TSW"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUserId = null;
+        let authReady = false;
+
+        // Listen for authentication state changes (anonymous sign-in for all users)
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                authReady = true;
+                console.log("Authenticated as:", currentUserId);
+                // Dispatch event to signal that Firebase is ready
+                window.dispatchEvent(new CustomEvent('firebaseReady'));
+            } else {
+                // Sign in anonymously if no user is found
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Firebase anonymous authentication error:", error);
+                    // Display a message to the user if authentication fails
+                    const loadingMessage = document.getElementById('loading-message');
+                    if (loadingMessage) {
+                        if (error.code === 'auth/configuration-not-found' || error.code === 'auth/api-key-not-valid') {
+                            loadingMessage.textContent = 'Firebase connection error: Anonymous authentication might not be enabled in your Firebase project, or your API key is invalid. Please check Firebase Console > Authentication > Sign-in method, and ensure your firebaseConfig details are correct.';
+                        } else {
+                            loadingMessage.textContent = 'Failed to connect to shared data. Please check your network connection and browser console for more details.';
+                        }
+                        loadingMessage.classList.add('text-red-600');
+                    }
+                }
+            }
+        });
+
+        // Make Firebase instances and userId available globally for the main script
+        window.firestoreDb = db;
+        window.getUserId = () => currentUserId;
+        window.isAuthReady = () => authReady;
+        window.getAppId = () => firebaseConfig.projectId; // Using projectId as appId for Firestore path
+    </script>
+
     <!-- Chosen Palette: Neutral Professional -->
     <!-- Application Structure Plan: The application is structured as an interactive dashboard. It features a main header, a filtering control panel with pack-based categories, and a dynamic content area. Test cases are presented as responsive cards. Users can filter cases by 'Pack Name' (Monthly, Weekly, Daily) using buttons. Crucially, users can now add new test cases via a modal form and delete existing ones directly from their cards. This structure is chosen to facilitate efficient management and exploration of renewal test scenarios, providing immediate visual feedback on status and allowing dynamic modification of the test suite. -->
-    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: Filter buttons based on 'Pack Name' categories. Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive navigation for specific pack types. Individual Test Cases -> Goal: Inform/Track Status/Manage -> Presentation: Styled cards displaying Scenario, Pack Name, and other details. Includes Pass/Fail buttons for status tracking, a Delete button for removal, and an Edit button for modification. Interaction: Click Pass/Fail to toggle status (persisted via localStorage); click Delete to remove; click Edit to open pre-populated modal for modification. Add New Test Case -> Goal: Manage/Extend -> Presentation: Modal form with input fields for all test case properties. Interaction: Form submission adds a new test case to the data and re-renders the grid. Justification: Provides a structured way to extend the test suite dynamically. Edit Test Case -> Goal: Manage/Modify -> Presentation: Modal form pre-populated with existing data. Interaction: Form submission updates the existing test case in data and re-renders. Justification: Allows for correction and refinement of test cases. Data Counter -> Goal: Inform -> Presentation: Text label. Interaction: Updates counts of visible, passed, and failed cases upon filtering or modification. Justification: Offers immediate progress feedback. Generate Excel Report -> Goal: Export/Report -> Presentation: Button. Interaction: Downloads a CSV file with all current test cases and their statuses. Justification: Provides an offline, shareable record of the test suite. No charts are used as the data is primarily textual and categorical, not quantitative for charting. -->
+    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: Filter buttons based on 'Pack Name' categories. Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive navigation for specific pack types. Individual Test Cases -> Goal: Inform/Track Status/Manage -> Presentation: Styled cards displaying Scenario, Pack Name, and other details. Includes Pass/Fail buttons for status tracking, a Delete button for removal, and an Edit button for modification. Interaction: Click Pass/Fail to toggle status (persisted via Firebase Firestore); click Delete to remove (persisted via Firebase Firestore); click Edit to open pre-populated modal for modification (persisted via Firebase Firestore). Add New Test Case -> Goal: Manage/Extend -> Presentation: Modal form with input fields for all test case properties. Interaction: Form submission adds a new test case to the data and re-renders the grid (persisted via Firebase Firestore). Justification: Provides a structured way to extend the test suite dynamically. Edit Test Case -> Goal: Manage/Modify -> Presentation: Modal form pre-populated with existing data. Interaction: Form submission updates the existing test case in data and re-renders (persisted via Firebase Firestore). Justification: Allows for correction and refinement of test cases. Data Counter -> Goal: Inform -> Presentation: Text label. Interaction: Updates counts of visible, passed, and failed cases upon filtering or modification. Justification: Offers immediate progress feedback. Generate Excel Report -> Goal: Export/Report -> Presentation: Button. Interaction: Downloads a CSV file with all current test cases and their statuses. Justification: Provides an offline, shareable record of the test suite. No charts are used as the data is primarily textual and categorical, not quantitative for charting. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -118,6 +178,9 @@
         </div>
         
         <main id="test-case-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="loading-message" class="col-span-full text-center text-gray-500 text-lg mt-8">
+                Loading test cases... Please ensure your Firebase API key is valid and rules are set for public read/write.
+            </div>
         </main>
 
     </div>
@@ -243,9 +306,11 @@
         </div>
     </div>
 
-    <script>
-        // Initial test case data based on the provided image
-        // This array will be overwritten if data exists in localStorage
+    <script type="module">
+        import { doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initial test case data. This will be used if Firestore is empty.
+        // Once Firestore data is loaded, this array will be overwritten.
         let testCases = [
             {
                 id: 'RENEWAL-M-001',
@@ -321,27 +386,8 @@
 
         const grid = document.getElementById('test-case-grid');
         const counter = document.getElementById('case-counter');
-        let currentFilter = 'all'; // Keep track of the currently active filter
-
-        // Function to load testCases array from localStorage
-        function loadTestCasesFromLocalStorage() {
-            const storedData = localStorage.getItem('renewalTestCasesData'); // Changed localStorage key
-            if (storedData) {
-                try {
-                    const parsedData = JSON.parse(storedData);
-                    if (Array.isArray(parsedData) && parsedData.length > 0) {
-                        testCases = parsedData; // Overwrite initial array with stored data
-                    }
-                } catch (e) {
-                    console.error("Error parsing localStorage data, using default test cases:", e);
-                }
-            }
-        }
-
-        // Function to save testCases array to localStorage
-        function saveTestCasesToLocalStorage() {
-            localStorage.setItem('renewalTestCasesData', JSON.stringify(testCases)); // Changed localStorage key
-        }
+        const loadingMessage = document.getElementById('loading-message');
+        let currentFilter = 'all';
 
         function updateCaseCounter() {
             const visibleCards = Array.from(grid.children).filter(card => !card.classList.contains('hidden'));
@@ -350,6 +396,38 @@
             const totalVisible = visibleCards.length;
 
             counter.textContent = `Showing ${totalVisible} of ${testCases.length} total test cases. (Passed: ${passedCount}, Failed: ${failedCount})`;
+        }
+
+        async function saveTestCaseToFirestore(testCaseData) {
+            if (!window.isAuthReady()) {
+                console.error("Firestore not ready: Authentication not complete.");
+                return;
+            }
+            const appId = window.getAppId();
+            const docRef = doc(window.firestoreDb, `artifacts/${appId}/public/data/renewal_test_cases`, testCaseData.id);
+            try {
+                await setDoc(docRef, testCaseData, { merge: true });
+                console.log(`Test case ${testCaseData.id} saved/updated in Firestore.`);
+            } catch (e) {
+                console.error("Error saving/updating document: ", e);
+                alert("Error saving test case. Check console for details.");
+            }
+        }
+
+        async function deleteTestCaseFromFirestore(testCaseId) {
+            if (!window.isAuthReady()) {
+                console.error("Firestore not ready: Authentication not complete.");
+                return;
+            }
+            const appId = window.getAppId();
+            const docRef = doc(window.firestoreDb, `artifacts/${appId}/public/data/renewal_test_cases`, testCaseId);
+            try {
+                await deleteDoc(docRef);
+                console.log(`Test case ${testCaseId} deleted from Firestore.`);
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+                alert("Error deleting test case. Check console for details.");
+            }
         }
 
         function updateCardDisplayStatus(cardElement, newStatus) {
@@ -390,7 +468,7 @@
             card.className = `test-card bg-white rounded-lg shadow-md border border-gray-200/80 p-6 relative`;
             card.dataset.category = tc.category;
             card.dataset.id = tc.id;
-            card.dataset.status = tc.status; // Initial status from data
+            card.dataset.status = tc.status;
 
             card.innerHTML = `
                 <div class="card-header mb-4 flex justify-between items-center">
@@ -430,29 +508,39 @@
             const passButton = card.querySelector('.status-pass');
             const failButton = card.querySelector('.status-fail');
             const deleteButton = card.querySelector('.delete-test-case-btn');
-            const editButton = card.querySelector('.edit-test-case-btn'); // Get the new edit button
+            const editButton = card.querySelector('.edit-test-case-btn');
 
-            passButton.addEventListener('click', () => {
+            passButton.addEventListener('click', async () => {
                 const currentStatus = card.dataset.status;
                 const newStatus = (currentStatus === 'pass') ? 'pending' : 'pass';
                 updateCardDisplayStatus(card, newStatus);
-                saveTestCasesToLocalStorage();
+                // Find the test case in the array and update its status before saving
+                const tcIndex = testCases.findIndex(t => t.id === tc.id);
+                if (tcIndex !== -1) {
+                    testCases[tcIndex].status = newStatus;
+                    await saveTestCaseToFirestore(testCases[tcIndex]);
+                }
             });
-            failButton.addEventListener('click', () => {
+            failButton.addEventListener('click', async () => {
                 const currentStatus = card.dataset.status;
                 const newStatus = (currentStatus === 'fail') ? 'pending' : 'fail';
                 updateCardDisplayStatus(card, newStatus);
-                saveTestCasesToLocalStorage();
+                 // Find the test case in the array and update its status before saving
+                const tcIndex = testCases.findIndex(t => t.id === tc.id);
+                if (tcIndex !== -1) {
+                    testCases[tcIndex].status = newStatus;
+                    await saveTestCaseToFirestore(testCases[tcIndex]);
+                }
             });
 
-            deleteButton.addEventListener('click', () => {
+            deleteButton.addEventListener('click', async () => {
                 if (confirm(`Are you sure you want to delete test case ${tc.id} - "${tc.scenario}"?`)) {
-                    deleteTestCase(tc.id);
+                    await deleteTestCaseFromFirestore(tc.id);
                 }
             });
 
             editButton.addEventListener('click', () => {
-                openEditModal(tc.id); // Open edit modal with this test case's ID
+                openEditModal(tc.id);
             });
 
             return card;
@@ -469,12 +557,6 @@
             });
 
             updateCaseCounter();
-        }
-
-        function deleteTestCase(idToDelete) {
-            testCases = testCases.filter(tc => tc.id !== idToDelete);
-            saveTestCasesToLocalStorage();
-            displayTestCases(currentFilter);
         }
         
         const filterButtons = document.querySelectorAll('.filter-btn');
@@ -501,7 +583,7 @@
             addTestCaseForm.reset();
         });
 
-        addTestCaseForm.addEventListener('submit', (event) => {
+        addTestCaseForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const newId = document.getElementById('new-test-id').value.trim();
@@ -535,14 +617,12 @@
                 packRenewalDate: newPackRenewalDate,
                 preRenewalSMS: newPreRenewalSMS,
                 postRenCharging: newPostRenCharging,
-                testResult: '', // This is for manual input in Excel, not directly set here
+                testResult: '', // This is for manual input in Excel
                 observation: newObservation,
-                status: 'pending'
+                status: 'pending' // New test cases start as pending
             };
 
-            testCases.push(newTestCase);
-            saveTestCasesToLocalStorage();
-            displayTestCases(currentFilter);
+            await saveTestCaseToFirestore(newTestCase); // Save to Firestore
             
             addTestCaseModal.classList.add('hidden');
             addTestCaseForm.reset();
@@ -582,7 +662,7 @@
             editTestCaseForm.reset();
         });
 
-        editTestCaseForm.addEventListener('submit', (event) => {
+        editTestCaseForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const originalId = document.getElementById('edit-original-id').value;
@@ -610,7 +690,7 @@
 
             const testCaseIndex = testCases.findIndex(tc => tc.id === originalId);
             if (testCaseIndex !== -1) {
-                testCases[testCaseIndex] = {
+                const updatedTestCase = {
                     ...testCases[testCaseIndex], // Keep existing properties like status
                     id: updatedId,
                     category: updatedCategory,
@@ -623,8 +703,12 @@
                     postRenCharging: updatedPostRenCharging,
                     observation: updatedObservation
                 };
-                saveTestCasesToLocalStorage();
-                displayTestCases(currentFilter);
+                // If ID changed, delete old doc and create new one
+                if (originalId !== updatedId) {
+                    await deleteTestCaseFromFirestore(originalId);
+                }
+                await saveTestCaseToFirestore(updatedTestCase); // Save the updated/new doc
+                
                 editTestCaseModal.classList.add('hidden');
                 editTestCaseForm.reset();
             } else {
@@ -697,10 +781,43 @@
 
         document.getElementById('generate-excel-btn').addEventListener('click', generateExcelFile);
 
-        // Load test cases (including custom ones) when the page loads
+        // Main loading logic: Listen for Firebase ready event
+        window.addEventListener('firebaseReady', () => {
+            const appId = window.getAppId();
+            const testCasesCollectionRef = collection(window.firestoreDb, `artifacts/${appId}/public/data/renewal_test_cases`);
+
+            // Set up real-time listener for test cases
+            onSnapshot(testCasesCollectionRef, (snapshot) => {
+                loadingMessage.classList.add('hidden'); // Hide loading message once data starts coming
+                let updatedTestCases = [];
+                snapshot.forEach(doc => {
+                    updatedTestCases.push(doc.data());
+                });
+
+                // If Firestore is empty, populate with initial data
+                // Only populate if the collection is truly empty AND there are default test cases
+                if (snapshot.empty && testCases.length > 0) {
+                    console.log("Firestore collection is empty, populating with initial data.");
+                    testCases.forEach(async (tc) => {
+                        await saveTestCaseToFirestore(tc);
+                    });
+                    // The onSnapshot will trigger again with the new data
+                } else {
+                    // Sort the updatedTestCases array by ID to maintain consistent order
+                    updatedTestCases.sort((a, b) => a.id.localeCompare(b.id));
+                    testCases = updatedTestCases; // Update local array with data from Firestore
+                    displayTestCases(currentFilter); // Re-render the UI
+                }
+            }, (error) => {
+                console.error("Error listening to Firestore updates:", error);
+                loadingMessage.textContent = 'Error loading data. Check console for details and Firebase rules.';
+                loadingMessage.classList.add('text-red-600');
+            });
+        });
+
+        // Initial display of loading message
         window.onload = () => {
-            loadTestCasesFromLocalStorage();
-            displayTestCases();
+            loadingMessage.classList.remove('hidden');
         };
     </script>
 
