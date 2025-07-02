@@ -284,6 +284,12 @@
         }
 
         function updateCardDisplayStatus(cardElement, newStatus) {
+            const testCaseId = cardElement.dataset.id;
+            const testCaseIndex = testCases.findIndex(tc => tc.id === testCaseId);
+            if (testCaseIndex !== -1) {
+                testCases[testCaseIndex].status = newStatus; // Update the in-memory array
+            }
+
             cardElement.dataset.status = newStatus;
             const statusIndicator = cardElement.querySelector('.status-indicator');
             const passButton = cardElement.querySelector('.status-pass');
