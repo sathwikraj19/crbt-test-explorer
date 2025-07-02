@@ -392,17 +392,32 @@
 
         // Function to generate and download CSV
         function generateExcelFile() {
-            let csvContent = "No.,Test Case ID,DESCRIPTION,Pre-conditions,Test Steps,Expected Result,Status\n";
+            const currentDate = new Date().toLocaleDateString('en-GB');
+            const projectName = "CRBT Service Enhancement";
+            const moduleName = "SMS Notifications & Subscription Logic";
+            const version = "1.0";
+
+            let csvContent = "";
+
+            // Add Header/Metadata
+            csvContent += `"Project:","${projectName}"\n`;
+            csvContent += `"Module:","${moduleName}"\n`;
+            csvContent += `"Date:","${currentDate}"\n`;
+            csvContent += `"Version:","${version}"\n`;
+            csvContent += "\n"; // Empty line for separation
+
+            // Add Column Headers
+            csvContent += "No.,Test Case ID,DESCRIPTION,Pre-conditions,Test Steps,Expected Result,Status,Testing MSISDN,Testing Result,Testing Time,Remarks\n";
 
             testCases.forEach((tc, index) => {
                 // Escape commas and newlines within fields by enclosing them in double quotes
                 const escapeCsvField = (field) => {
                     if (typeof field === 'string') {
                         // Replace double quotes with two double quotes, then wrap in double quotes
-                        return `"${field.replace(/"/g, '""')}"`;
+                        return `"${field.replace(/"/g, '""').replace(/\n/g, '\r\n')}"`; // Handle newlines
                     } else if (Array.isArray(field)) {
                         // For arrays, join with a semicolon and escape the whole string
-                        return `"${field.map(item => item.replace(/"/g, '""')).join('; ')}"`;
+                        return `"${field.map(item => item.replace(/"/g, '""').replace(/\n/g, '\r\n')).join('; ')}"`;
                     }
                     return field; // For numbers, booleans etc.
                 };
@@ -413,7 +428,10 @@
                 const expectedResult = escapeCsvField(tc.expectedResult);
                 const status = escapeCsvField(tc.status);
 
-                csvContent += `${index + 1},${tc.id},${description},${preConditions},${testSteps},${expectedResult},${status}\n`;
+                // Add empty columns for manual input in Excel
+                const emptyColumns = ',"","","",""'; // Testing MSISDN, Testing Result, Testing Time, Remarks
+
+                csvContent += `${index + 1},${tc.id},${description},${preConditions},${testSteps},${expectedResult},${status}${emptyColumns}\n`;
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -421,7 +439,7 @@
             if (link.download !== undefined) { // Feature detection for download attribute
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
-                link.setAttribute('download', 'crbt_test_cases_report.csv');
+                link.setAttribute('download', `CRBT_Test_Report_${currentDate.replace(/\//g, '-')}.csv`);
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
