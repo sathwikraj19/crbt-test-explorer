@@ -7,65 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Firebase SDKs for Firestore and Authentication -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables (provided by Canvas environment, using placeholders for external deployment)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-crbt-app-id'; // Default for non-Canvas environments
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "YOUR_FIREBASE_API_KEY", // Replace with your actual Firebase API Key if deploying outside Canvas
-            authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-            projectId: "YOUR_FIREBASE_PROJECT_ID",
-            storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-            appId: "YOUR_FIREBASE_APP_ID"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        let currentUserId = null;
-        let authReady = false;
-
-        // Listen for authentication state changes
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                authReady = true;
-                console.log("Authenticated as:", currentUserId);
-                // Now that we are authenticated, display and load test cases
-                window.dispatchEvent(new CustomEvent('authReady'));
-            } else {
-                // Sign in anonymously if no user is found or __initial_auth_token is not provided
-                try {
-                    if (typeof __initial_auth_token !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Firebase authentication error:", error);
-                }
-            }
-        });
-
-        // Make Firebase instances and userId available globally for the main script
-        window.firebaseApp = app;
-        window.firestoreDb = db;
-        window.firebaseAuth = auth;
-        window.getUserId = () => currentUserId;
-        window.isAuthReady = () => authReady;
-        window.getAppId = () => appId; // Expose appId as well
-    </script>
-
     <!-- Chosen Palette: Neutral Professional -->
     <!-- Application Structure Plan: The application is structured as an interactive dashboard rather than a static report. It features a main header, a filtering control panel, and a dynamic content area. The core information (test cases) is presented in a responsive grid of cards, which is a more modern and digestible format than a dense table. Users can filter the cards by "Scenario Group" (New User, Active User, Edge Cases) using interactive buttons. This structure was chosen because the source material is a technical specification, not narrative data. The primary user goal is to find and review specific test cases efficiently. A filterable dashboard directly supports this goal, enhancing navigation and making the content more accessible and less overwhelming than a long, static document. -->
-    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: A row of filter buttons -> Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive UI pattern for focusing on specific content subsets. Individual Test Cases -> Goal: Inform/Track Status -> Presentation: Styled cards with clear typographical hierarchy, Unicode icons (📋, ▶️, ✔️), and new Pass/Fail buttons. Interaction: Clicking Pass/Fail buttons updates the test case status visually and internally, and now persists to Firestore. Double-clicking a 'Pass' or 'Fail' button deselects the status, reverting to 'Pending'. Data Counter -> Goal: Inform -> Presentation: A simple text label. Interaction: Updates text with the count of visible cards upon filtering and also updates with pass/fail counts. Justification: Provides immediate feedback on the scope of the filtered view and testing progress. No charts (e.g., from Chart.js) are used, as there is no quantitative data in the source report that would lend itself to meaningful charting. -->
+    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: A row of filter buttons -> Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive UI pattern for focusing on specific content subsets. Individual Test Cases -> Goal: Inform/Track Status -> Presentation: Styled cards with clear typographical hierarchy, Unicode icons (📋, ▶️, ✔️), and new Pass/Fail buttons. Interaction: Clicking Pass/Fail buttons updates the test case status visually and internally, and now persists using localStorage. Double-clicking a 'Pass' or 'Fail' button deselects the status, reverting to 'Pending'. Data Counter -> Goal: Inform -> Presentation: A simple text label. Interaction: Updates text with the count of visible cards upon filtering and also updates with pass/fail counts. Justification: Provides immediate feedback on the scope of the filtered view and testing progress. Added "Generate Excel" button for exporting current test case data and statuses to a CSV file. No charts (e.g., from Chart.js) are used, as there is no quantitative data in the source report that would lend itself to meaningful charting. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -127,6 +71,11 @@
                 <button data-filter="edge-case" class="filter-btn text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">Edge Cases</button>
             </div>
             <p id="case-counter" class="text-center text-sm text-gray-500 mt-3"></p>
+            <div class="flex justify-center mt-4">
+                <button id="generate-excel-btn" class="bg-purple-600 text-white font-medium py-2 px-5 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200">
+                    Generate Excel Report
+                </button>
+            </div>
         </div>
         
         <main id="test-case-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -134,10 +83,8 @@
 
     </div>
 
-    <script type="module">
-        import { doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Initial test case data. Status will be overridden by Firestore.
+    <script>
+        // Initial test case data. Status will be loaded from localStorage.
         let testCases = [
             {
                 id: 'CRBT-NEW-001',
@@ -153,7 +100,7 @@
                     'B-Party answers the call (or call completes).'
                 ],
                 expectedResult: 'A-Party should receive a "Hangup SMS" (e.g., "You heard this tune, press Y to subscribe") AND a "Promotional SMS" upon call disconnection.',
-                status: 'pending' // Default status, will be updated from Firestore
+                status: 'pending' // Default status, will be updated from localStorage
             },
             {
                 id: 'CRBT-NEW-002',
@@ -305,6 +252,28 @@
         const counter = document.getElementById('case-counter');
         let currentFilter = 'all'; // Keep track of the currently active filter
 
+        // Function to load statuses from localStorage
+        function loadStatusesFromLocalStorage() {
+            const storedStatuses = localStorage.getItem('crbtTestStatuses');
+            if (storedStatuses) {
+                const parsedStatuses = JSON.parse(storedStatuses);
+                testCases.forEach(tc => {
+                    if (parsedStatuses[tc.id]) {
+                        tc.status = parsedStatuses[tc.id];
+                    }
+                });
+            }
+        }
+
+        // Function to save statuses to localStorage
+        function saveStatusesToLocalStorage() {
+            const statusesToStore = {};
+            testCases.forEach(tc => {
+                statusesToStore[tc.id] = tc.status;
+            });
+            localStorage.setItem('crbtTestStatuses', JSON.stringify(statusesToStore));
+        }
+
         function updateCaseCounter() {
             const visibleCards = Array.from(grid.children).filter(card => !card.classList.contains('hidden'));
             const passedCount = visibleCards.filter(card => card.dataset.status === 'pass').length;
@@ -312,27 +281,6 @@
             const totalVisible = visibleCards.length;
 
             counter.textContent = `Showing ${totalVisible} of ${testCases.length} total test cases. (Passed: ${passedCount}, Failed: ${failedCount})`;
-        }
-
-        async function saveStatusToFirestore(testCaseId, newStatus) {
-            if (!window.isAuthReady()) {
-                console.error("Firestore not ready: Authentication not complete.");
-                return;
-            }
-            const userId = window.getUserId();
-            const appId = window.getAppId(); // Get appId from global
-            if (!userId) {
-                console.error("User ID not available for saving status.");
-                return;
-            }
-
-            try {
-                const docRef = doc(window.firestoreDb, `artifacts/${appId}/users/${userId}/crbt_test_cases`, testCaseId);
-                await setDoc(docRef, { status: newStatus }, { merge: true });
-                console.log(`Status for ${testCaseId} updated to ${newStatus} in Firestore.`);
-            } catch (e) {
-                console.error("Error updating document: ", e);
-            }
         }
 
         function updateCardDisplayStatus(cardElement, newStatus) {
@@ -403,18 +351,18 @@
             const passButton = card.querySelector('.status-pass');
             const failButton = card.querySelector('.status-fail');
 
-            // Single click to set status
-            passButton.addEventListener('click', async () => {
+            // Single click to set status, or deselect if already active
+            passButton.addEventListener('click', () => {
                 const currentStatus = card.dataset.status;
                 const newStatus = (currentStatus === 'pass') ? 'pending' : 'pass';
                 updateCardDisplayStatus(card, newStatus);
-                await saveStatusToFirestore(tc.id, newStatus);
+                saveStatusesToLocalStorage(); // Save changes
             });
-            failButton.addEventListener('click', async () => {
+            failButton.addEventListener('click', () => {
                 const currentStatus = card.dataset.status;
                 const newStatus = (currentStatus === 'fail') ? 'pending' : 'fail';
                 updateCardDisplayStatus(card, newStatus);
-                await saveStatusToFirestore(tc.id, newStatus);
+                saveStatusesToLocalStorage(); // Save changes
             });
 
             return card;
@@ -442,53 +390,55 @@
             });
         });
 
-        // Main loading logic
-        window.addEventListener('authReady', async () => {
-            if (!window.firestoreDb || !window.getUserId()) {
-                console.error("Firestore or User ID not available after authReady.");
-                return;
-            }
+        // Function to generate and download CSV
+        function generateExcelFile() {
+            let csvContent = "No.,Test Case ID,DESCRIPTION,Pre-conditions,Test Steps,Expected Result,Status\n";
 
-            const userId = window.getUserId();
-            const appId = window.getAppId(); // Get appId from global
-            const testCasesCollectionRef = collection(window.firestoreDb, `artifacts/${appId}/users/${userId}/crbt_test_cases`);
-
-            // Listen for real-time updates to test case statuses
-            onSnapshot(testCasesCollectionRef, (snapshot) => {
-                snapshot.docChanges().forEach(change => {
-                    const testCaseId = change.doc.id;
-                    const newStatus = change.doc.data().status;
-                    
-                    // Find the corresponding test case in our local array
-                    const localTestCase = testCases.find(tc => tc.id === testCaseId);
-                    if (localTestCase) {
-                        localTestCase.status = newStatus;
-                        // Find the card element and update its display
-                        const cardElement = grid.querySelector(`[data-id="${testCaseId}"]`);
-                        if (cardElement) {
-                            updateCardDisplayStatus(cardElement, newStatus);
-                        } else {
-                            // If the card isn't currently displayed (due to filter),
-                            // we still update the local data and then re-display if needed.
-                            displayTestCases(currentFilter);
-                        }
-                    } else {
-                        console.warn(`Test case with ID ${testCaseId} not found in local data.`);
+            testCases.forEach((tc, index) => {
+                // Escape commas and newlines within fields by enclosing them in double quotes
+                const escapeCsvField = (field) => {
+                    if (typeof field === 'string') {
+                        // Replace double quotes with two double quotes, then wrap in double quotes
+                        return `"${field.replace(/"/g, '""')}"`;
+                    } else if (Array.isArray(field)) {
+                        // For arrays, join with a semicolon and escape the whole string
+                        return `"${field.map(item => item.replace(/"/g, '""')).join('; ')}"`;
                     }
-                });
-                // Initial display or re-display after changes
-                displayTestCases(currentFilter);
-            }, (error) => {
-                console.error("Error listening to Firestore updates:", error);
-            });
-        });
+                    return field; // For numbers, booleans etc.
+                };
 
-        // Ensure initial display happens after auth is ready
-        window.onload = () => {
-            if (window.isAuthReady()) {
-                window.dispatchEvent(new CustomEvent('authReady'));
+                const description = escapeCsvField(tc.description);
+                const preConditions = escapeCsvField(tc.preConditions);
+                const testSteps = escapeCsvField(tc.testSteps);
+                const expectedResult = escapeCsvField(tc.expectedResult);
+                const status = escapeCsvField(tc.status);
+
+                csvContent += `${index + 1},${tc.id},${description},${preConditions},${testSteps},${expectedResult},${status}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) { // Feature detection for download attribute
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'crbt_test_cases_report.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                // Fallback for browsers that don't support the download attribute
+                alert('Your browser does not support downloading files directly. Please copy the content and paste it into a spreadsheet program.');
             }
-            // If not ready, the 'authReady' listener will handle it once authenticated.
+        }
+
+        // Attach event listener to the new button
+        document.getElementById('generate-excel-btn').addEventListener('click', generateExcelFile);
+
+        // Load statuses when the page loads
+        window.onload = () => {
+            loadStatusesFromLocalStorage();
+            displayTestCases();
         };
     </script>
 
