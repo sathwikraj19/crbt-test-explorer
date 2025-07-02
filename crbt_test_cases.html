@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive CRBT Test Case Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Neutral Professional -->
+    <!-- Application Structure Plan: The application is structured as an interactive dashboard rather than a static report. It features a main header, a filtering control panel, and a dynamic content area. The core information (test cases) is presented in a responsive grid of cards, which is a more modern and digestible format than a dense table. Users can filter the cards by "Scenario Group" (New User, Active User, Edge Cases) using interactive buttons. This structure was chosen because the source material is a technical specification, not narrative data. The primary user goal is to find and review specific test cases efficiently. A filterable dashboard directly supports this goal, enhancing navigation and making the content more accessible and less overwhelming than a long, static document. -->
+    <!-- Visualization & Content Choices: Test Case Scenarios -> Goal: Organize/Filter -> Presentation: A row of filter buttons -> Interaction: On click, JS filters and displays relevant test case cards. Justification: Intuitive UI pattern for focusing on specific content subsets. Individual Test Cases -> Goal: Inform/Track Status -> Presentation: Styled cards with clear typographical hierarchy, Unicode icons (📋, ▶️, ✔️), and new Pass/Fail buttons. Interaction: Clicking Pass/Fail buttons updates the test case status visually and internally. Data Counter -> Goal: Inform -> Presentation: A simple text label. Interaction: Updates text with the count of visible cards upon filtering and also updates with pass/fail counts. Justification: Provides immediate feedback on the scope of the filtered view and testing progress. No charts (e.g., from Chart.js) are used, as there is no quantitative data in the source report that would lend itself to meaningful charting. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+        }
+        .filter-btn {
+            transition: all 0.3s ease;
+        }
+        .filter-btn.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+        .test-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            will-change: transform;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-content {
+            flex-grow: 1;
+        }
+        .status-button {
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+        }
+        .status-button:active {
+            transform: scale(0.98);
+        }
+        .status-pass.active {
+            background-color: #22c55e; /* Green 500 */
+            color: white;
+        }
+        .status-fail.active {
+            background-color: #ef4444; /* Red 500 */
+            color: white;
+        }
+        .status-pending {
+            background-color: #f3f4f6; /* Gray 100 */
+            color: #4b5563; /* Gray 600 */
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">CRBT Service Test Case Explorer</h1>
+            <p class="mt-2 text-lg text-gray-600">An interactive guide to the SMS Notification & Subscription Logic test suite.</p>
+        </header>
+
+        <div id="controls" class="mb-8 p-4 bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 sticky top-4 z-10">
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <span class="font-semibold text-gray-700 mr-3">Filter by Scenario:</span>
+                <button data-filter="all" class="filter-btn active text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">All Cases</button>
+                <button data-filter="new-user" class="filter-btn text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">New User</button>
+                <button data-filter="active-user" class="filter-btn text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">Active User</button>
+                <button data-filter="edge-case" class="filter-btn text-sm font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">Edge Cases</button>
+            </div>
+            <p id="case-counter" class="text-center text-sm text-gray-500 mt-3"></p>
+        </div>
+        
+        <main id="test-case-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </main>
+
+    </div>
+
+    <script>
+        const testCases = [
+            {
+                id: 'CRBT-NEW-001',
+                category: 'new-user',
+                description: 'Verify Hangup & Promotional SMS for A-Party (New User) calling B-Party (CRBT Active) - First Call of the Day.',
+                preConditions: [
+                    'A-Party is a new user (never subscribed to CRBT).',
+                    'B-Party has an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive a "Hangup SMS" (e.g., "You heard this tune, press Y to subscribe") AND a "Promotional SMS" upon call disconnection.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-NEW-002',
+                category: 'new-user',
+                description: 'Verify Hangup SMS ONLY for A-Party (New User) calling Different B-Party (CRBT Active) - Second Call of the Day.',
+                preConditions: [
+                    'A-Party is a new user who has already made *one* CRBT-active call today.',
+                    'A-Party calls a *different* B-Party who has an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to a *different* B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive ONLY a "Hangup SMS" upon call disconnection. No Promotional SMS should be received.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-NEW-003',
+                category: 'new-user',
+                description: 'Verify NO SMS for A-Party (New User) calling Different B-Party (CRBT Active) - Third Call of the Day.',
+                preConditions: [
+                    'A-Party is a new user who has already made *two* CRBT-active calls today.',
+                    'A-Party calls a *different* B-Party who has an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to a *different* B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive NO SMS (neither Hangup nor Promotional) upon call disconnection.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-ACTIVE-001',
+                category: 'active-user',
+                description: 'Verify Hangup & Promotional SMS for A-Party (Active CRBT User) calling B-Party (CRBT Active) - First Call of the Day.',
+                preConditions: [
+                    'A-Party is an active CRBT subscriber.',
+                    'B-Party has an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive a "Hangup SMS" AND a "Promotional SMS" upon call disconnection.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-ACTIVE-002',
+                category: 'active-user',
+                description: 'Verify Hangup SMS ONLY for A-Party (Active CRBT User) calling Different B-Party (CRBT Active) - Second Call of the Day.',
+                preConditions: [
+                    'A-Party is an active CRBT subscriber who has already made *one* CRBT-active call today.',
+                    'A-Party calls a *different* B-Party who has an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to a *different* B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive ONLY a "Hangup SMS" upon call disconnection. No Promotional SMS should be received.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-ACTIVE-003',
+                category: 'active-user',
+                description: 'Verify NO SMS for A-Party (Active CRBT User) calling Different B-Party (CRBT Active) - Third Call of the Day.',
+                preConditions: [
+                    'A-Party is an active CRBT subscriber who has already made *two* CRBT-active calls today.',
+                    'A-Party calls a *different* B-Party who has an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to a *different* B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive NO SMS (neither Hangup nor Promotional) upon call disconnection.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-ACTIVE-004',
+                category: 'active-user',
+                description: 'Verify NO SMS for A-Party (Active CRBT User) calling B-Party (CRBT Active - Same Song).',
+                preConditions: [
+                    'A-Party is an active CRBT subscriber.',
+                    'B-Party has an active CRBT service.',
+                    'The CRBT tune of B-Party is *identical* to the song A-Party is currently subscribed to.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive NO SMS (neither Hangup nor Promotional) upon call disconnection.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-EDGE-001',
+                category: 'edge-case',
+                description: 'Verify No SMS when B-Party does NOT have CRBT service.',
+                preConditions: [
+                    'A-Party is a new or active CRBT user.',
+                    'B-Party does NOT have an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to B-Party.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive NO SMS (neither Hangup nor Promotional) upon call disconnection, as CRBT was not active for B-Party.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-EDGE-002',
+                category: 'edge-case',
+                description: 'Verify Daily SMS Counter Resets at Midnight.',
+                preConditions: [
+                    'A-Party is a new user who made 3 CRBT-active calls on Day 1 (and received no SMS on the 3rd call).',
+                    'B-Party has an active CRBT service.'
+                ],
+                testSteps: [
+                    'Advance system time to Day 2 (new day).',
+                    'A-Party initiates a call to B-Party.',
+                    'A-Party listens to the B-Party\'s CRBT.',
+                    'B-Party answers the call (or call completes).'
+                ],
+                expectedResult: 'A-Party should receive a "Hangup SMS" AND a "Promotional SMS" upon call disconnection, as the daily counter for SMS notifications should have reset.',
+                status: 'pending'
+            },
+            {
+                id: 'CRBT-EDGE-003',
+                category: 'edge-case',
+                description: 'Verify behavior when call is disconnected before CRBT plays or B-Party answers.',
+                preConditions: [
+                    'A-Party is a new or active CRBT user.',
+                    'B-Party has an active CRBT service.'
+                ],
+                testSteps: [
+                    'A-Party initiates a call to B-Party.',
+                    'A-Party disconnects the call *before* the CRBT plays fully or before B-Party answers.'
+                ],
+                expectedResult: 'A-Party should receive NO SMS (neither Hangup nor Promotional) as the CRBT interaction was not completed as per conditions.',
+                status: 'pending'
+            }
+        ];
+
+        const grid = document.getElementById('test-case-grid');
+        const counter = document.getElementById('case-counter');
+
+        function updateCaseCounter() {
+            const visibleCards = Array.from(grid.children).filter(card => !card.classList.contains('hidden'));
+            const passedCount = visibleCards.filter(card => card.dataset.status === 'pass').length;
+            const failedCount = visibleCards.filter(card => card.dataset.status === 'fail').length;
+            const totalVisible = visibleCards.length;
+
+            counter.textContent = `Showing ${totalVisible} of ${testCases.length} total test cases. (Passed: ${passedCount}, Failed: ${failedCount})`;
+        }
+
+        function createTestCaseCard(tc) {
+            const card = document.createElement('div');
+            card.className = `test-card bg-white rounded-lg shadow-md border border-gray-200/80 p-6 relative`;
+            card.dataset.category = tc.category;
+            card.dataset.id = tc.id;
+            card.dataset.status = tc.status;
+
+            const preConditionsHtml = tc.preConditions.map(item => `<li>${item}</li>`).join('');
+            const testStepsHtml = tc.testSteps.map(item => `<li>${item}</li>`).join('');
+
+            card.innerHTML = `
+                <div class="card-header mb-4">
+                    <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">${tc.id}</span>
+                    <span class="status-indicator inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize"></span>
+                </div>
+                <div class="card-content">
+                    <p class="font-semibold text-gray-800 mb-4">${tc.description}</p>
+                    
+                    <div class="mb-4">
+                        <h3 class="font-semibold text-sm text-gray-500 mb-2">📋 Pre-conditions</h3>
+                        <ul class="list-disc list-inside text-gray-600 text-sm space-y-1">${preConditionsHtml}</ul>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h3 class="font-semibold text-sm text-gray-500 mb-2">▶️ Test Steps</h3>
+                        <ol class="list-decimal list-inside text-gray-600 text-sm space-y-1">${testStepsHtml}</ol>
+                    </div>
+                </div>
+                <div class="card-footer mt-auto pt-4 border-t border-gray-200 flex justify-end gap-2">
+                    <button class="status-button status-pass text-sm font-medium py-1.5 px-3 rounded-full border border-green-500 text-green-700 hover:bg-green-100" data-action="pass">Pass</button>
+                    <button class="status-button status-fail text-sm font-medium py-1.5 px-3 rounded-full border border-red-500 text-red-700 hover:bg-red-100" data-action="fail">Fail</button>
+                </div>
+            `;
+
+            const statusIndicator = card.querySelector('.status-indicator');
+            const passButton = card.querySelector('.status-pass');
+            const failButton = card.querySelector('.status-fail');
+
+            function updateCardStatus(newStatus) {
+                card.dataset.status = newStatus;
+                const testCaseIndex = testCases.findIndex(t => t.id === tc.id);
+                if (testCaseIndex !== -1) {
+                    testCases[testCaseIndex].status = newStatus;
+                }
+
+                statusIndicator.className = 'status-indicator inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize';
+                passButton.className = 'status-button status-pass text-sm font-medium py-1.5 px-3 rounded-full border border-green-500 text-green-700 hover:bg-green-100';
+                failButton.className = 'status-button status-fail text-sm font-medium py-1.5 px-3 rounded-full border border-red-500 text-red-700 hover:bg-red-100';
+
+                if (newStatus === 'pass') {
+                    statusIndicator.classList.add('bg-green-100', 'text-green-800');
+                    statusIndicator.textContent = 'Passed';
+                    passButton.classList.add('active');
+                } else if (newStatus === 'fail') {
+                    statusIndicator.classList.add('bg-red-100', 'text-red-800');
+                    statusIndicator.textContent = 'Failed';
+                    failButton.classList.add('active');
+                } else {
+                    statusIndicator.classList.add('bg-gray-100', 'text-gray-600');
+                    statusIndicator.textContent = 'Pending';
+                    passButton.classList.add('status-pending');
+                    failButton.classList.add('status-pending');
+                }
+                updateCaseCounter();
+            }
+
+            // Set initial status
+            updateCardStatus(tc.status);
+
+            passButton.addEventListener('click', () => updateCardStatus('pass'));
+            failButton.addEventListener('click', () => updateCardStatus('fail'));
+
+            return card;
+        }
+
+        function displayTestCases(filter = 'all') {
+            grid.innerHTML = '';
+            
+            const filteredCases = testCases.filter(tc => filter === 'all' || tc.category === filter);
+            
+            filteredCases.forEach(tc => {
+                grid.appendChild(createTestCaseCard(tc));
+            });
+
+            updateCaseCounter();
+        }
+        
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                displayTestCases(button.dataset.filter);
+            });
+        });
+
+        window.onload = () => displayTestCases();
+    </script>
+
+</body>
+</html>
