@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RBT Data Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Subtle Accents -->
+    <!-- Application Structure Plan: The application is structured with a clear input section at the top for file upload and prompt, followed by a results section. The results section dynamically displays the AI-generated analysis text and a static pivot table. This linear flow guides the user through the process of providing input and then consuming the output, prioritizing clarity and ease of use for data analysis tasks. -->
+    <!-- Visualization & Content Choices: 
+        - File Input & Prompt Area (Inform/Interact): Standard HTML file input and textarea. Justification: Essential for user data and query input.
+        - Analysis Text (Inform): Dynamic text display. Justification: Presents the AI's qualitative insights.
+        - Pivot Table (Organize/Compare): Dynamically generated HTML table. Justification: Provides the requested structured, cross-tabulated view of data, mimicking a pivot table's summary capabilities.
+        - Loading Indicator (Inform): Simple text/spinner. Justification: Provides feedback during AI processing.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF7;
+            color: #374151;
+        }
+        .container {
+            max-width: 960px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-primary {
+            background-color: #6366F1;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            background-color: #4F46E5;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #E5E7EB;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #F3F4F6;
+            font-weight: 600;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6366F1;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-900">RBT Data Analyzer</h1>
+            <p class="text-lg text-gray-600 mt-2">Upload your CSV, ask a question, and get insights!</p>
+        </header>
+
+        <main>
+            <section id="input-section" class="card">
+                <h2 class="text-xl font-semibold text-indigo-900 mb-4">Input Your Data and Query</h2>
+                <div class="mb-4">
+                    <label for="csv-file-input" class="block text-gray-700 text-sm font-bold mb-2">Upload CSV File:</label>
+                    <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                </div>
+                <div class="mb-6">
+                    <label for="user-prompt" class="block text-gray-700 text-sm font-bold mb-2">Your Query:</label>
+                    <textarea id="user-prompt" rows="4" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., 'Analyze the active subscriber count and grace count over time and provide a pivot table showing daily active vs. grace subscribers.'"></textarea>
+                </div>
+                <button id="analyze-button" class="btn-primary w-full">
+                    <span id="button-text">Analyze Data</span>
+                    <span id="loading-indicator" class="loading-spinner hidden"></span>
+                </button>
+                <p id="error-message" class="text-red-600 mt-4 hidden"></p>
+            </section>
+
+            <section id="results-section" class="card hidden">
+                <h2 class="text-xl font-semibold text-indigo-900 mb-4">Analysis Results</h2>
+                <div id="analysis-text" class="text-gray-700 mb-6 leading-relaxed"></div>
+
+                <h3 class="text-xl font-semibold text-indigo-900 mb-4">Pivot Table</h3>
+                <div id="pivot-table-container" class="overflow-x-auto">
+                    <!-- Pivot table will be rendered here by JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 text-gray-500">
+            <p>&copy; 2025 RBT Data Analyzer. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('csv-file-input');
+            const userPrompt = document.getElementById('user-prompt');
+            const analyzeButton = document.getElementById('analyze-button');
+            const buttonText = document.getElementById('button-text');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+            const resultsSection = document.getElementById('results-section');
+            const analysisTextDiv = document.getElementById('analysis-text');
+            const pivotTableContainer = document.getElementById('pivot-table-container');
+
+            analyzeButton.addEventListener('click', async () => {
+                const file = fileInput.files[0];
+                const prompt = userPrompt.value.trim();
+
+                if (!file) {
+                    displayError('Please upload a CSV file.');
+                    return;
+                }
+                if (!prompt) {
+                    displayError('Please enter your query.');
+                    return;
+                }
+
+                setLoading(true);
+                displayError('');
+                resultsSection.classList.add('hidden');
+
+                try {
+                    const csvContent = await readFileAsync(file);
+                    await getAnalysisAndPivot(csvContent, prompt);
+                } catch (error) {
+                    console.error('Error during analysis:', error);
+                    displayError('An error occurred during analysis. Please try again. ' + error.message);
+                } finally {
+                    setLoading(false);
+                }
+            });
+
+            function readFileAsync(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => resolve(event.target.result);
+                    reader.onerror = (event) => reject(event.target.error);
+                    reader.readAsText(file);
+                });
+            }
+
+            async function getAnalysisAndPivot(csvContent, userQuery) {
+                // Prepare the prompt for the LLM
+                // Instruct the LLM to return a JSON object with analysis text, relevant raw data, and pivot table configuration.
+                const llmPrompt = `
+You are a data analyst. I am providing you with CSV data and a query.
+Analyze the data based on the query and provide a concise analysis text and structured data for a pivot table.
+
+CSV Data:
+${csvContent}
+
+Query: "${userQuery}"
+
+Please return a JSON object with the following structure.
+The 'relevantData' should be an array of objects, where each object represents a row from the CSV that is relevant to the query. Ensure all values are correctly typed (numbers as numbers, strings as strings).
+The 'suggestedPivotConfig' should define how to pivot this 'relevantData'.
+
+{
+  "analysisText": "Your concise analysis here.",
+  "pivotTable": {
+    "relevantData": [
+      // e.g., {"Date": "2025-07-20", "Active Subscribers": 495691, "Grace Subscribers": 495520},
+      // {"Date": "2025-07-19", "Active Subscribers": 496392, "Grace Subscribers": 493461}
+      // ... more relevant rows ...
+    ],
+    "suggestedPivotConfig": {
+      "rows": ["Date"], // Array of column names to use as row headers
+      "columns": [], // Array of column names to use as column headers (can be empty)
+      "values": [{"field": "Active Subscribers", "aggregation": "sum"}, {"field": "Grace Subscribers", "aggregation": "sum"}] // Array of objects, each with "field" and "aggregation" (sum, count, avg)
+    }
+  }
+}
+If a specific pivot table cannot be generated from the data, set 'relevantData' to an empty array and 'suggestedPivotConfig' to default values.
+`;
+
+                const apiKey = ""; // Canvas will provide this at runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                role: "user",
+                                parts: [{
+                                    text: llmPrompt
+                                }]
+                            }],
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                responseSchema: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "analysisText": { "type": "STRING" },
+                                        "pivotTable": {
+                                            "type": "OBJECT",
+                                            "properties": {
+                                                "relevantData": {
+                                                    "type": "ARRAY",
+                                                    "items": { "type": "OBJECT" }
+                                                },
+                                                "suggestedPivotConfig": {
+                                                    "type": "OBJECT",
+                                                    "properties": {
+                                                        "rows": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                                        "columns": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                                        "values": {
+                                                            "type": "ARRAY",
+                                                            "items": {
+                                                                "type": "OBJECT",
+                                                                "properties": {
+                                                                    "field": { "type": "STRING" },
+                                                                    "aggregation": { "type": "STRING" }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`API error: ${response.status} - ${errorData.error.message}`);
+                    }
+
+                    const result = await response.json();
+                    const jsonResponse = result.candidates[0].content.parts[0].text;
+                    const parsedData = JSON.parse(jsonResponse);
+
+                    analysisTextDiv.innerHTML = parsedData.analysisText.replace(/\n/g, '<br>');
+                    renderPivotTable(parsedData.pivotTable.relevantData, parsedData.pivotTable.suggestedPivotConfig);
+
+                    resultsSection.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error('Failed to get analysis from LLM:', error);
+                    displayError('Could not get analysis. Ensure your query is clear and the CSV data is well-formatted. ' + error.message);
+                }
+            }
+
+            function renderPivotTable(data, config) {
+                pivotTableContainer.innerHTML = ''; // Clear previous table
+
+                if (!data || data.length === 0 || !config || !config.rows || !config.values) {
+                    pivotTableContainer.innerHTML = '<p class="text-gray-500">No relevant data or pivot configuration found for the given query.</p>';
+                    return;
+                }
+
+                const rows = config.rows;
+                const columns = config.columns || [];
+                const values = config.values;
+
+                // Create a map for aggregation
+                const aggregatedData = {};
+
+                data.forEach(item => {
+                    const rowKey = rows.map(r => item[r]).join('|'); // Composite key for rows
+                    const colKey = columns.map(c => item[c]).join('|'); // Composite key for columns
+
+                    if (!aggregatedData[rowKey]) {
+                        aggregatedData[rowKey] = {};
+                    }
+                    if (!aggregatedData[rowKey][colKey]) {
+                        aggregatedData[rowKey][colKey] = {};
+                        values.forEach(v => {
+                            aggregatedData[rowKey][colKey][v.field] = { sum: 0, count: 0, avg: 0 };
+                        });
+                    }
+
+                    values.forEach(v => {
+                        const value = parseFloat(item[v.field]);
+                        if (!isNaN(value)) {
+                            aggregatedData[rowKey][colKey][v.field].sum += value;
+                            aggregatedData[rowKey][colKey][v.field].count += 1;
+                        }
+                    });
+                });
+
+                // Get unique column headers (for pivot columns)
+                const uniqueColHeaders = new Set();
+                if (columns.length > 0) {
+                    data.forEach(item => {
+                        uniqueColHeaders.add(columns.map(c => item[c]).join('|'));
+                    });
+                }
+                const sortedUniqueColHeaders = Array.from(uniqueColHeaders).sort();
+
+                let tableHtml = '<table><thead><tr>';
+
+                // Add row headers
+                rows.forEach(r => {
+                    tableHtml += `<th rowspan="${columns.length > 0 ? 2 : 1}">${r}</th>`;
+                });
+
+                // Add column headers (if any)
+                if (columns.length > 0) {
+                    sortedUniqueColHeaders.forEach(colHeader => {
+                        tableHtml += `<th colspan="${values.length}" class="text-center">${colHeader}</th>`;
+                    });
+                    tableHtml += '</tr><tr>'; // Second row for value fields under column headers
+                    sortedUniqueColHeaders.forEach(() => {
+                        values.forEach(v => {
+                            tableHtml += `<th>${v.field} (${v.aggregation})</th>`;
+                        });
+                    });
+                } else {
+                    // If no pivot columns, just add value headers
+                    values.forEach(v => {
+                        tableHtml += `<th>${v.field} (${v.aggregation})</th>`;
+                    });
+                }
+                tableHtml += '</tr></thead><tbody>';
+
+                // Add table body
+                Object.keys(aggregatedData).sort().forEach(rowKey => {
+                    tableHtml += '<tr>';
+                    rows.forEach((r, index) => {
+                        const rowValue = rowKey.split('|')[index];
+                        tableHtml += `<td>${rowValue}</td>`;
+                    });
+
+                    if (columns.length > 0) {
+                        sortedUniqueColHeaders.forEach(colHeader => {
+                            values.forEach(v => {
+                                const aggValue = aggregatedData[rowKey][colHeader] ? aggregatedData[rowKey][colHeader][v.field] : { sum: 0, count: 0 };
+                                let displayValue;
+                                if (v.aggregation === 'sum') {
+                                    displayValue = aggValue.sum.toLocaleString();
+                                } else if (v.aggregation === 'count') {
+                                    displayValue = aggValue.count.toLocaleString();
+                                } else if (v.aggregation === 'avg') {
+                                    displayValue = aggValue.count > 0 ? (aggValue.sum / aggValue.count).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+                                } else {
+                                    displayValue = aggValue.sum.toLocaleString(); // Default to sum
+                                }
+                                tableHtml += `<td class="text-right">${displayValue}</td>`;
+                            });
+                        });
+                    } else {
+                        values.forEach(v => {
+                            const aggValue = aggregatedData[rowKey][''] ? aggregatedData[rowKey][''][v.field] : { sum: 0, count: 0 };
+                            let displayValue;
+                            if (v.aggregation === 'sum') {
+                                displayValue = aggValue.sum.toLocaleString();
+                            } else if (v.aggregation === 'count') {
+                                displayValue = aggValue.count.toLocaleString();
+                            } else if (v.aggregation === 'avg') {
+                                displayValue = aggValue.count > 0 ? (aggValue.sum / aggValue.count).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+                            } else {
+                                displayValue = aggValue.sum.toLocaleString(); // Default to sum
+                            }
+                            tableHtml += `<td class="text-right">${displayValue}</td>`;
+                        });
+                    }
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+                pivotTableContainer.innerHTML = tableHtml;
+            }
+
+            function setLoading(isLoading) {
+                analyzeButton.disabled = isLoading;
+                if (isLoading) {
+                    buttonText.textContent = 'Analyzing...';
+                    loadingIndicator.classList.remove('hidden');
+                } else {
+                    buttonText.textContent = 'Analyze Data';
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+
+            function displayError(message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
