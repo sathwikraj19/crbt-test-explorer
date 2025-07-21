@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RBT Data Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for reading Excel files -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Warm Neutrals & Subtle Accents -->
     <!-- Application Structure Plan: The application is structured with a clear input section at the top for file upload and prompt, followed by a results section. The results section dynamically displays the AI-generated analysis text and a static pivot table. This linear flow guides the user through the process of providing input and then consuming the output, prioritizing clarity and ease of use for data analysis tasks. -->
     <!-- Visualization & Content Choices: 
-        - File Input & Prompt Area (Inform/Interact): Standard HTML file input and textarea. Justification: Essential for user data and query input.
+        - File Input & Prompt Area (Inform/Interact): Standard HTML file input and textarea. Justification: Essential for user data and query input. Now supports .csv and .xlsx.
         - Analysis Text (Inform): Dynamic text display. Justification: Presents the AI's qualitative insights.
         - Pivot Table (Organize/Compare): Dynamically generated HTML table. Justification: Provides the requested structured, cross-tabulated view of data, mimicking a pivot table's summary capabilities.
         - Loading Indicator (Inform): Simple text/spinner. Justification: Provides feedback during AI processing.
@@ -79,15 +81,15 @@
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold text-indigo-900">RBT Data Analyzer</h1>
-            <p class="text-lg text-gray-600 mt-2">Upload your CSV, ask a question, and get insights!</p>
+            <p class="text-lg text-gray-600 mt-2">Upload your data, ask a question, and get insights!</p>
         </header>
 
         <main>
             <section id="input-section" class="card">
                 <h2 class="text-xl font-semibold text-indigo-900 mb-4">Input Your Data and Query</h2>
                 <div class="mb-4">
-                    <label for="csv-file-input" class="block text-gray-700 text-sm font-bold mb-2">Upload CSV File:</label>
-                    <input type="file" id="csv-file-input" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                    <label for="csv-file-input" class="block text-gray-700 text-sm font-bold mb-2">Upload CSV or Excel File:</label>
+                    <input type="file" id="csv-file-input" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
                 </div>
                 <div class="mb-6">
                     <label for="user-prompt" class="block text-gray-700 text-sm font-bold mb-2">Your Query:</label>
@@ -133,7 +135,7 @@
                 const prompt = userPrompt.value.trim();
 
                 if (!file) {
-                    displayError('Please upload a CSV file.');
+                    displayError('Please upload a CSV or Excel file.');
                     return;
                 }
                 if (!prompt) {
@@ -146,8 +148,8 @@
                 resultsSection.classList.add('hidden');
 
                 try {
-                    const csvContent = await readFileAsync(file);
-                    await getAnalysisAndPivot(csvContent, prompt);
+                    const fileContent = await readFileAsync(file);
+                    await getAnalysisAndPivot(fileContent, prompt);
                 } catch (error) {
                     console.error('Error during analysis:', error);
                     displayError('An error occurred during analysis. Please try again. ' + error.message);
@@ -159,9 +161,39 @@
             function readFileAsync(file) {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
-                    reader.onload = (event) => resolve(event.target.result);
+
+                    reader.onload = (event) => {
+                        const data = event.target.result;
+                        let csvString = '';
+
+                        if (file.name.endsWith('.csv')) {
+                            csvString = data;
+                        } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                            try {
+                                const workbook = XLSX.read(data, { type: 'binary' });
+                                const sheetName = workbook.SheetNames[0]; // Get the first sheet
+                                const worksheet = workbook.Sheets[sheetName];
+                                csvString = XLSX.utils.sheet_to_csv(worksheet);
+                            } catch (e) {
+                                reject(new Error('Failed to parse Excel file. Please ensure it is a valid .xlsx or .xls format.'));
+                                return;
+                            }
+                        } else {
+                            reject(new Error('Unsupported file type. Please upload a CSV, XLSX, or XLS file.'));
+                            return;
+                        }
+                        resolve(csvString);
+                    };
+
                     reader.onerror = (event) => reject(event.target.error);
-                    reader.readAsText(file);
+
+                    if (file.name.endsWith('.csv')) {
+                        reader.readAsText(file);
+                    } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                        reader.readAsBinaryString(file);
+                    } else {
+                        reject(new Error('Unsupported file type for reading.'));
+                    }
                 });
             }
 
@@ -199,7 +231,7 @@ The 'suggestedPivotConfig' should define how to pivot this 'relevantData'.
 If a specific pivot table cannot be generated from the data, set 'relevantData' to an empty array and 'suggestedPivotConfig' to default values.
 `;
 
-                const apiKey = ""; // Canvas will provide this at runtime
+                const apiKey = "AIzaSyAMg1CnM_UuzfoW6tyyzKCRNry6SXkRKL0"; // Your Gemini API Key
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                 try {
@@ -269,7 +301,7 @@ If a specific pivot table cannot be generated from the data, set 'relevantData' 
 
                 } catch (error) {
                     console.error('Failed to get analysis from LLM:', error);
-                    displayError('Could not get analysis. Ensure your query is clear and the CSV data is well-formatted. ' + error.message);
+                    displayError('Could not get analysis. Ensure your query is clear and the data is well-formatted. ' + error.message);
                 }
             }
 
