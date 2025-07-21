@@ -231,7 +231,10 @@ The 'suggestedPivotConfig' should define how to pivot this 'relevantData'.
 If a specific pivot table cannot be generated from the data, set 'relevantData' to an empty array and 'suggestedPivotConfig' to default values.
 `;
 
-                const apiKey = "AIzaSyAMg1CnM_UuzfoW6tyyzKCRNry6SXkRKL0"; // Your Gemini API Key
+                const apiKey = ""; // IMPORTANT: Replace this with your actual Gemini API Key.
+                                   // You can get one from Google AI Studio: https://aistudio.google.com/app/apikey
+                                   // If you continue to get 403 errors, ensure your API key has no restrictions
+                                   // or that "HTTP referrers (web sites)" is configured to allow requests from your Canvas preview URL (*.usercontent.goog).
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                 try {
@@ -258,7 +261,7 @@ If a specific pivot table cannot be generated from the data, set 'relevantData' 
                                             "properties": {
                                                 "relevantData": {
                                                     "type": "ARRAY",
-                                                    "items": { "type": "OBJECT" }
+                                                    "items": { "type": "OBJECT" } // FIX: Removed empty "properties"
                                                 },
                                                 "suggestedPivotConfig": {
                                                     "type": "OBJECT",
