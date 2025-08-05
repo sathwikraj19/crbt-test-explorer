@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>To My Beautiful Doctor</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #ffecd2, #fcb69f);
+      overflow: hidden;
+      text-align: center;
+      padding: 50px;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+      z-index: 1;
+      position: relative;
+    }
+
+    h1 {
+      color: #ff6f61;
+    }
+
+    .quote {
+      font-style: italic;
+      margin: 20px 0;
+      font-size: 1.2em;
+    }
+
+    .heart {
+      color: red;
+      font-size: 3em;
+      animation: beat 1s infinite;
+    }
+
+    @keyframes beat {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.3);
+      }
+    }
+
+    .butterfly {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Butterfly_icon.svg/48px-Butterfly_icon.svg.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      animation: fly 20s linear infinite;
+      opacity: 0.8;
+    }
+
+    .butterfly:nth-child(1) { top: 90%; left: 10%; animation-delay: 0s; }
+    .butterfly:nth-child(2) { top: 100%; left: 30%; animation-delay: 2s; }
+    .butterfly:nth-child(3) { top: 95%; left: 70%; animation-delay: 4s; }
+
+    @keyframes fly {
+      0% {
+        transform: translateY(0) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-500px) rotate(360deg);
+      }
+      100% {
+        transform: translateY(-1000px) rotate(720deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="butterfly"></div>
+  <div class="butterfly"></div>
+  <div class="butterfly"></div>
+
+  <div class="card">
+    <h1>To My Beautiful Doctor ❤️</h1>
+    <p class="quote">"You heal others with your hands, but you heal me with your heart."</p>
+    <p class="quote">"Even the strongest feel low sometimes, but you are stronger than you think."</p>
+    <p class="quote">"Your smile lights up my darkest days. Never forget how amazing you are."</p>
+    <p class="quote">"I'm with you always, just like you're always with me."</p>
+    <p class="heart">❤️</p>
+    <p>Love,<br><strong>Your Biggest Supporter</strong></p>
+  </div>
+</body>
+</html>
