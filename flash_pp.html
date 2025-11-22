@@ -1,856 +1,404 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Flash Service Project Plan – Interactive</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+  /* ========= EDITABLE DATA ========= */
 
-  <style>
-    :root {
-      --bg: #0f172a;
-      --surface: #ffffff;
-      --border: #e2e8f0;
-      --text-main: #0f172a;
-      --text-muted: #6b7280;
-      --accent-1: #6366f1;
-      --accent-2: #0ea5e9;
-      --accent-3: #22c55e;
-      --accent-4: #111827;
-      --accent-warning: #facc15;
-      --accent-danger: #f97373;
-      --chip-bg: #eef2ff;
-      --radius-lg: 16px;
-      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.13);
-      --grid-line: #e5e7eb;
+  const phases = [
+    {
+      id: "kickoff",
+      title: "Requirement & Kickoff",
+      sub: "Scope freeze, timelines, use cases, dependencies",
+      color: "var(--accent-1)",
+    },
+    {
+      id: "config",
+      title: "Flash Config & Routing",
+      sub: "Environment readiness, service config, routing tables",
+      color: "var(--accent-2)",
+    },
+    {
+      id: "integration",
+      title: "Integrations (SDP / IVR / Charging)",
+      sub: "SDP, IVR, SMSC, charging & reporting integrations",
+      color: "var(--accent-3)",
+    },
+    {
+      id: "sit",
+      title: "System Integration Testing (SIT)",
+      sub: "Core flows, negative scenarios, capacity & failover",
+      color: "var(--accent-1)",
+    },
+    {
+      id: "uat",
+      title: "User Acceptance Testing (UAT)",
+      sub: "Client test cases execution, defect fixing & sign-off",
+      color: "var(--accent-2)",
+    },
+    {
+      id: "golive",
+      title: "Go-Live & Hypercare",
+      sub: "Cutover, production validation, monitoring & handover",
+      color: "var(--accent-4)",
+    },
+  ];
+
+  // status: "done" | "on-going" | "upcoming"
+  let tasks = [
+    {
+      id: 1,
+      phaseId: "kickoff",
+      title: "Project Kick-off & Scope Freeze",
+      owner: "SR",
+      start: "2024-11-01",
+      end:   "2024-11-03",
+      status: "done",
+      notes:
+        "Kick-off meeting with client; agree on Flash scope, environments and high-level milestones.",
+    },
+    {
+      id: 2,
+      phaseId: "kickoff",
+      title: "Requirement Walkthrough & KT",
+      owner: "PM",
+      start: "2024-11-02",
+      end:   "2024-11-06",
+      status: "on-going",
+      notes:
+        "Detailed walkthrough of flows (MO/MT), charging rules, reporting, alarms and dependencies.",
+    },
+    {
+      id: 3,
+      phaseId: "config",
+      title: "Environment Readiness (UAT Flash)",
+      owner: "RK",
+      start: "2024-11-04",
+      end:   "2024-11-08",
+      status: "on-going",
+      notes:
+        "Validate UAT servers, connectivity, certificates, ports and base Flash installation.",
+    },
+    {
+      id: 4,
+      phaseId: "config",
+      title: "Flash Service Config & Routing Tables",
+      owner: "SR",
+      start: "2024-11-07",
+      end:   "2024-11-14",
+      status: "upcoming",
+      notes:
+        "Configure Flash applications, IN parameters, routing logic and failover rules as per design.",
+    },
+    {
+      id: 5,
+      phaseId: "integration",
+      title: "SDP / IVR Integration",
+      owner: "AB",
+      start: "2024-11-11",
+      end:   "2024-11-18",
+      status: "upcoming",
+      notes:
+        "End-to-end signalling integration with SDP / IVR, callback URLs and header validations.",
+    },
+    {
+      id: 6,
+      phaseId: "integration",
+      title: "Charging & Billing Validation",
+      owner: "RK",
+      start: "2024-11-15",
+      end:   "2024-11-20",
+      status: "upcoming",
+      notes:
+        "Validate charging IDs, rate plans, free/chargeable calls and CDR generation for Flash.",
+    },
+    {
+      id: 7,
+      phaseId: "sit",
+      title: "SIT – Core Call Flows",
+      owner: "SR",
+      start: "2024-11-19",
+      end:   "2024-11-25",
+      status: "upcoming",
+      notes:
+        "Run core inbound/outbound Flash scenarios, success & error flows, happy path coverage.",
+    },
+    {
+      id: 8,
+      phaseId: "sit",
+      title: "SIT – Negative & Load Scenarios",
+      owner: "AB",
+      start: "2024-11-23",
+      end:   "2024-11-28",
+      status: "upcoming",
+      notes:
+        "Negative, timeout, retry and basic load tests; ensure stability with multiple concurrent calls.",
+    },
+    {
+      id: 9,
+      phaseId: "uat",
+      title: "Client UAT Cycle",
+      owner: "PM",
+      start: "2024-11-26",
+      end:   "2024-12-05",
+      status: "upcoming",
+      notes:
+        "Client executes agreed UAT scenarios; track defects, re-deploy fixes and obtain UAT sign-off.",
+    },
+    {
+      id: 10,
+      phaseId: "golive",
+      title: "Production Cutover & Sanity",
+      owner: "RK",
+      start: "2024-12-06",
+      end:   "2024-12-08",
+      status: "upcoming",
+      notes:
+        "Migrate configs to PROD, perform controlled cutover, run sanity calls and confirm KPIs.",
+    },
+    {
+      id: 11,
+      phaseId: "golive",
+      title: "Hypercare Monitoring & Handover",
+      owner: "SR",
+      start: "2024-12-09",
+      end:   "2024-12-18",
+      status: "upcoming",
+      notes:
+        "Monitor Flash KPIs, alarms and CDRs; daily status with client and final handover to operations.",
+    },
+  ];
+
+  // timeline range
+  const timelineStart = new Date("2024-11-01");
+  const timelineEnd   = new Date("2024-12-20");
+
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  const totalDays = Math.round((timelineEnd - timelineStart) / MS_PER_DAY) + 1;
+
+  function dateToDayIndex(dateStr) {
+    const d = new Date(dateStr);
+    return Math.round((d - timelineStart) / MS_PER_DAY);
+  }
+
+  const phaseListEl = document.getElementById("phaseList");
+  const headerRowEl = document.getElementById("timelineHeaderRow");
+  const gridEl = document.getElementById("timelineGrid");
+  const tooltipEl = document.getElementById("tooltip");
+  const detailsEl = document.getElementById("taskDetails");
+  const selectedStatusLabel = document.getElementById("selectedStatusLabel");
+
+  /* ---------- render static structure ---------- */
+
+  phases.forEach(phase => {
+    const li = document.createElement("li");
+    li.className = "phase-row";
+    li.dataset.phaseId = phase.id;
+    li.innerHTML = `
+      <div class="phase-title" contenteditable="true">${phase.title}</div>
+      <div class="phase-sub" contenteditable="true">${phase.sub}</div>
+    `;
+    phaseListEl.appendChild(li);
+  });
+
+  for (let i = 0; i < totalDays; i++) {
+    const date = new Date(timelineStart.getTime() + i * MS_PER_DAY);
+    const day = date.getDate();
+    const short = date.toLocaleDateString("en-GB", { weekday: "short" });
+    const cell = document.createElement("div");
+    cell.className = "timeline-day";
+    cell.innerHTML = `<div>${day}</div><div style="font-size:9px;">${short}</div>`;
+    headerRowEl.appendChild(cell);
+  }
+
+  phases.forEach(phase => {
+    const row = document.createElement("div");
+    row.className = "timeline-grid-row";
+    row.dataset.phaseId = phase.id;
+    gridEl.appendChild(row);
+  });
+
+  /* ---------- custom status drag system (works mouse + touch) ---------- */
+
+  let currentDragStatus = null;
+  let dragBadgeEl = null;
+
+  function startStatusDrag(status, x, y) {
+    currentDragStatus = status;
+    if (!dragBadgeEl) {
+      dragBadgeEl = document.createElement("div");
+      dragBadgeEl.textContent =
+        status === "done" ? "Done" :
+        status === "on-going" ? "On-Going" :
+        "Upcoming";
+      dragBadgeEl.style.position = "fixed";
+      dragBadgeEl.style.zIndex = "9999";
+      dragBadgeEl.style.pointerEvents = "none";
+      dragBadgeEl.style.padding = "4px 10px";
+      dragBadgeEl.style.borderRadius = "999px";
+      dragBadgeEl.style.fontSize = "10px";
+      dragBadgeEl.style.letterSpacing = "0.12em";
+      dragBadgeEl.style.textTransform = "uppercase";
+      dragBadgeEl.style.boxShadow = "0 10px 20px rgba(15,23,42,0.4)";
+      dragBadgeEl.style.background =
+        status === "done" ? "#bbf7d0" :
+        status === "on-going" ? "#bae6fd" :
+        "#fef9c3";
+      dragBadgeEl.style.color = "#0f172a";
+      document.body.appendChild(dragBadgeEl);
     }
+    updateDragBadge(x, y);
+  }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  function updateDragBadge(x, y) {
+    if (!dragBadgeEl) return;
+    dragBadgeEl.style.left = x + 12 + "px";
+    dragBadgeEl.style.top  = y + 12 + "px";
+  }
 
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      min-height: 100vh;
-      background: radial-gradient(circle at top left, #4f46e5, #0f172a 55%);
-      color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      padding: 16px;
+  function stopStatusDrag() {
+    currentDragStatus = null;
+    if (dragBadgeEl) {
+      dragBadgeEl.remove();
+      dragBadgeEl = null;
     }
+    document.querySelectorAll(".task-bar.drag-over").forEach(b => b.classList.remove("drag-over"));
+  }
 
-    .page {
-      max-width: 1220px;
-      width: 100%;
-      background: radial-gradient(circle at top left, #eef2ff, #ffffff 55%);
-      border-radius: 22px;
-      box-shadow: var(--shadow-soft);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+  function makeStatusDragSource(element, getStatusFn) {
+    if (!element) return;
 
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 18px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-      background: linear-gradient(90deg, #4f46e5, #0ea5e9);
-      color: #e5e7eb;
-      font-size: 13px;
-    }
-    .topbar small { font-size: 11px; opacity: 0.9; }
+    element.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      const status = getStatusFn();
+      if (!status) return;
+      startStatusDrag(status, e.clientX, e.clientY);
 
-    .main-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 2.1fr) minmax(270px, 0.9fr);
-      gap: 0;
-      padding: 12px 16px 16px;
-    }
-    .left, .right { padding: 10px; }
+      const moveHandler = ev => {
+        updateDragBadge(ev.clientX, ev.clientY);
+        // highlight bar under cursor
+        const bar = ev.target.closest(".task-bar");
+        document.querySelectorAll(".task-bar.drag-over").forEach(b => b.classList.remove("drag-over"));
+        if (bar) bar.classList.add("drag-over");
+      };
 
-    @media (max-width: 900px) {
-      .main-layout { grid-template-columns: minmax(0, 1fr); }
-      .right { padding-top: 0; }
-    }
+      const upHandler = ev => {
+        const bar = ev.target.closest(".task-bar");
+        if (bar && currentDragStatus) {
+          const id = Number(bar.dataset.taskId);
+          const task = tasks.find(t => t.id === id);
+          if (task) {
+            task.status = currentDragStatus;
+            populateTaskSelect();
+            renderTasks(document.querySelector(".chip--active").dataset.filter);
+            fillEditorWithTask(id);
+            showTaskDetails(id);
+          }
+        }
+        stopStatusDrag();
+        window.removeEventListener("pointermove", moveHandler);
+        window.removeEventListener("pointerup", upHandler);
+      };
 
-    [contenteditable="true"] {
-      border-bottom: 1px dashed rgba(148, 163, 184, 0.6);
-      padding-bottom: 2px;
-      cursor: text;
-    }
+      window.addEventListener("pointermove", moveHandler);
+      window.addEventListener("pointerup", upHandler);
+    });
+  }
 
-    .header-block { margin-bottom: 10px; }
+  /* ---------- gantt render ---------- */
 
-    .title-row {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 8px;
-      align-items: baseline;
-    }
-    .title-row h1 { font-size: 19px; font-weight: 700; }
-    .title-row span { font-size: 11px; color: var(--text-muted); }
+  function clearTaskBars() {
+    document.querySelectorAll(".task-bar").forEach(el => el.remove());
+  }
 
-    .filters {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-      font-size: 11px;
-      align-items: center;
-    }
+  function renderTasks(filterStatus = "all") {
+    clearTaskBars();
 
-    .chip {
-      border-radius: 999px;
-      padding: 4px 10px;
-      background: var(--chip-bg);
-      border: 1px solid rgba(99, 102, 241, 0.4);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.15s ease, transform 0.12s ease;
-    }
-    .chip-dot { width: 7px; height: 7px; border-radius: 999px; }
-    .chip:hover { transform: translateY(-1px); background: #e0e7ff; }
-    .chip--active { background: #4f46e5; color: #e5e7eb; border-color: transparent; }
-    .chip--active .chip-dot { background: #e5e7eb !important; }
+    tasks.forEach(task => {
+      if (filterStatus !== "all" && task.status !== filterStatus) return;
 
-    .gantt-shell {
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      display: grid;
-      grid-template-columns: 180px minmax(0, 1fr);
-      overflow: hidden;
-    }
-    @media (max-width: 640px) {
-      .gantt-shell { grid-template-columns: minmax(0, 1fr); }
-      .gantt-phases { border-right: none; border-bottom: 1px solid var(--border); }
-    }
+      const row = document.querySelector(`.timeline-grid-row[data-phase-id="${task.phaseId}"]`);
+      if (!row) return;
 
-    .gantt-phases {
-      background: #f8fafc;
-      border-right: 1px solid var(--border);
-    }
+      const startIndex = dateToDayIndex(task.start);
+      const endIndex   = dateToDayIndex(task.end);
+      const durationDays = endIndex - startIndex + 1;
 
-    .gantt-header, .timeline-header {
-      padding: 8px 10px;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      background: rgba(248, 250, 252, 0.95);
-      border-bottom: 1px solid var(--border);
-    }
+      const leftPercent  = (startIndex / totalDays) * 100;
+      const widthPercent = (durationDays / totalDays) * 100;
 
-    .phases-list { list-style: none; }
-    .phase-row {
-      padding: 12px 10px;
-      border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
-      min-height: 60px;
-    }
-    .phase-title { font-size: 13px; font-weight: 600; }
-    .phase-sub  { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.3; }
+      const bar = document.createElement("div");
+      bar.className = "task-bar";
+      bar.dataset.taskId = task.id;
+      bar.dataset.status = task.status;
 
-    .timeline-wrapper {
-      position: relative;
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      background: #ffffff;
-    }
-    .timeline-inner { min-width: 700px; position: relative; }
+      const phase = phases.find(p => p.id === task.phaseId);
+      const bgColor = phase ? phase.color : "var(--accent-1)";
+      bar.style.background = bgColor;
+      bar.style.left  = leftPercent + "%";
+      bar.style.width = widthPercent + "%";
 
-    .timeline-header-row {
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(40px, 1fr);
-      text-align: center;
-      font-size: 11px;
-      color: var(--text-muted);
-      padding: 8px 0;
-    }
-    .timeline-day { border-left: 1px solid #f1f5f9; }
+      const statusLabel =
+        task.status === "done" ? "Done" :
+        task.status === "on-going" ? "On-Going" : "Upcoming";
 
-    .timeline-grid { position: relative; }
-    .timeline-grid-row {
-      height: 60px;
-      border-top: 1px solid var(--grid-line);
-      position: relative;
-    }
-
-    .today-line {
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 2px;
-      background: var(--accent-danger);
-      box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45);
-      pointer-events: none;
-    }
-    .today-label {
-      position: absolute;
-      top: 2px;
-      transform: translateX(-50%);
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: #fee2e2;
-      color: #b91c1c;
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      white-space: nowrap;
-    }
-
-    .task-bar {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 22px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 9px;
-      font-size: 11px;
-      color: #f9fafb;
-      cursor: pointer;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
-      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
-    }
-    .task-bar[data-status="done"]     { opacity: 0.92; }
-    .task-bar[data-status="upcoming"] { opacity: 0.9; border: 1px solid rgba(255,255,255,0.7); }
-    .task-bar.drag-over {
-      outline: 2px dashed rgba(56,189,248,0.9);
-      outline-offset: 1px;
-    }
-    .task-bar:hover {
-      transform: translateY(-55%) scale(1.02);
-      box-shadow: 0 16px 32px rgba(15,23,42,0.35);
-    }
-
-    .task-pill {
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.2);
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      cursor: grab; /* so it visually looks draggable */
-    }
-    .task-avatar {
-      width: 18px; height: 18px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.92);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-main);
-      flex-shrink: 0;
-    }
-    .task-title { font-weight: 600; }
-
-    .tooltip {
-      position: fixed;
-      pointer-events: none;
-      background: #020617;
-      color: #e5e7eb;
-      font-size: 11px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      box-shadow: 0 18px 30px rgba(15, 23, 42, 0.85);
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 0.12s ease, transform 0.12s ease;
-      z-index: 50;
-      max-width: 260px;
-      line-height: 1.4;
-    }
-    .tooltip.visible { opacity: 1; transform: translateY(0); }
-    .tooltip-title { font-weight: 600; margin-bottom: 4px; color: #f9fafb; }
-    .tooltip-line { display: flex; justify-content: space-between; gap: 12px; }
-
-    .panel {
-      background: rgba(255, 255, 255, 0.94);
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      padding: 10px 11px;
-      margin-bottom: 10px;
-    }
-    .panel-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .avatars { display: flex; flex-wrap: wrap; gap: 6px; }
-    .avatar {
-      width: 28px; height: 28px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center; justify-content: center;
-      color: #f9fafb;
-      font-weight: 600; font-size: 11px;
-      background: linear-gradient(135deg, #4f46e5, #ec4899);
-      box-shadow: 0 6px 15px rgba(148, 163, 184, 0.7);
-    }
-
-    .task-details {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-    .task-details strong { color: var(--text-main); }
-
-    .pill-row {
-      display: flex; flex-wrap: wrap;
-      gap: 6px; margin-top: 6px;
-    }
-    .info-pill {
-      font-size: 10px;
-      padding: 4px 7px;
-      border-radius: 999px;
-      border: 1px dashed rgba(148, 163, 184, 0.9);
-      background: #f9fafb;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px 8px;
-      margin-top: 6px;
-    }
-    @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .field label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-    }
-    .field input,
-    .field select,
-    .field textarea {
-      font-size: 11px;
-      padding: 5px 7px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      outline: none;
-      font-family: inherit;
-    }
-    .field textarea { resize: vertical; min-height: 48px; }
-
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-    .btn {
-      font-size: 11px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-weight: 500;
-    }
-    .btn-primary { background: #4f46e5; color: #f9fafb; }
-    .btn-secondary { background: #e5e7eb; color: #111827; }
-
-    .sticker-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 4px;
-    }
-    .status-sticker {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      cursor: grab;
-      user-select: none;
-      color: #0f172a;
-      border: 1px solid rgba(148, 163, 184, 0.8);
-      background: #f9fafb;
-      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
-    }
-    .status-sticker[data-status="done"] {
-      background: #bbf7d0;
-      border-color: #22c55e;
-    }
-    .status-sticker[data-status="on-going"] {
-      background: #bae6fd;
-      border-color: #0ea5e9;
-    }
-    .status-sticker[data-status="upcoming"] {
-      background: #fef9c3;
-      border-color: #facc15;
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <div class="topbar">
-      <div contenteditable="true">Flash Service Project Plan</div>
-      <small contenteditable="true">Environment: UAT | Owner: Implementation</small>
-    </div>
-
-    <div class="main-layout">
-      <!-- LEFT: GANTT -->
-      <section class="left">
-        <div class="header-block">
-          <div class="title-row">
-            <h1 contenteditable="true">Implementation Gantt – Flash Service</h1>
-            <span contenteditable="true">
-              Click a task bar or drag a status sticker or pill onto it. You can also edit via the Task Editor.
-            </span>
-          </div>
-
-          <div class="filters">
-            <span>Status:</span>
-            <button class="chip chip--active" data-filter="all">All</button>
-            <button class="chip" data-filter="done">
-              <span class="chip-dot" style="background:#22c55e;"></span>Done
-            </button>
-            <button class="chip" data-filter="on-going">
-              <span class="chip-dot" style="background:#0ea5e9;"></span>On-Going
-            </button>
-            <button class="chip" data-filter="upcoming">
-              <span class="chip-dot" style="background:#facc15;"></span>Upcoming
-            </button>
-          </div>
-        </div>
-
-        <div class="gantt-shell">
-          <aside class="gantt-phases">
-            <div class="gantt-header">Phases</div>
-            <ul class="phases-list" id="phaseList"></ul>
-          </aside>
-
-          <section class="timeline-wrapper">
-            <div class="timeline-inner">
-              <div class="timeline-header">
-                <div class="timeline-header-row" id="timelineHeaderRow"></div>
-              </div>
-              <div class="timeline-grid" id="timelineGrid"></div>
-
-              <div id="todayLine" class="today-line" style="display:none;">
-                <div class="today-label">Today</div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <!-- RIGHT: PANELS + EDITOR -->
-      <aside class="right">
-        <div class="panel">
-          <div class="panel-title">
-            Project Team
-            <span style="font-size:10px;">Edit initials by typing</span>
-          </div>
-          <div class="avatars">
-            <div class="avatar" contenteditable="true">SR</div>
-            <div class="avatar" contenteditable="true">RK</div>
-            <div class="avatar" contenteditable="true">AB</div>
-            <div class="avatar" contenteditable="true">PM</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">
-            Selected Task
-            <span id="selectedStatusLabel" style="font-size:10px;"></span>
-          </div>
-          <div class="task-details" id="taskDetails">
-            <p>Select a task or choose from the Task Editor below.</p>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">
-            Task Editor
-            <span style="font-size:10px;">Changes update the chart immediately</span>
-          </div>
-
-          <div class="field">
-            <label for="taskSelect">Choose Task</label>
-            <select id="taskSelect"></select>
-          </div>
-
-          <div class="form-grid">
-            <div class="field">
-              <label for="taskTitle">Title</label>
-              <input id="taskTitle" type="text" />
-            </div>
-            <div class="field">
-              <label for="taskOwner">Owner (Initials)</label>
-              <input id="taskOwner" type="text" />
-            </div>
-            <div class="field">
-              <label for="taskPhase">Phase</label>
-              <select id="taskPhase"></select>
-            </div>
-            <div class="field">
-              <label for="taskStatus">Status</label>
-              <select id="taskStatus">
-                <option value="done">Done</option>
-                <option value="on-going">On-Going</option>
-                <option value="upcoming">Upcoming</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="taskStart">Start Date</label>
-              <input id="taskStart" type="date" />
-            </div>
-            <div class="field">
-              <label for="taskEnd">End Date</label>
-              <input id="taskEnd" type="date" />
-            </div>
-          </div>
-
-          <div class="field" style="margin-top:6px;">
-            <label for="taskNotes">Notes / Description</label>
-            <textarea id="taskNotes"></textarea>
-          </div>
-
-          <div class="btn-row">
-            <button class="btn btn-primary" type="button" id="saveTaskBtn">Save / Update Task</button>
-            <button class="btn btn-secondary" type="button" id="addTaskBtn">Add as New Task</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">
-            Status Stickers
-            <span style="font-size:10px;">Drag onto any task bar</span>
-          </div>
-          <div class="sticker-row">
-            <div class="status-sticker" data-status="done" draggable="true">Done</div>
-            <div class="status-sticker" data-status="on-going" draggable="true">On-Going</div>
-            <div class="status-sticker" data-status="upcoming" draggable="true">Upcoming</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">Tips</div>
-          <div style="font-size:11px; color:var(--text-muted);">
-            <ul style="padding-left:16px; margin-top:2px;">
-              <li>You can drag a status sticker <em>or</em> the status pill on a bar to change its state.</li>
-              <li>Headings and phase descriptions can be edited by typing.</li>
-              <li>Task Editor lets you adjust dates, owner, phase and notes.</li>
-            </ul>
-          </div>
-        </div>
-      </aside>
-    </div>
-
-    <div id="tooltip" class="tooltip"></div>
-  </div>
-
-  <script>
-    /* ========= EDITABLE DATA ========= */
-
-    const phases = [
-      {
-        id: "kickoff",
-        title: "Requirement & Kickoff",
-        sub: "Scope freeze, timelines, use cases, dependencies",
-        color: "var(--accent-1)",
-      },
-      {
-        id: "config",
-        title: "Flash Config & Routing",
-        sub: "Environment readiness, service config, routing tables",
-        color: "var(--accent-2)",
-      },
-      {
-        id: "integration",
-        title: "Integrations (SDP / IVR / Charging)",
-        sub: "SDP, IVR, SMSC, charging & reporting integrations",
-        color: "var(--accent-3)",
-      },
-      {
-        id: "sit",
-        title: "System Integration Testing (SIT)",
-        sub: "Core flows, negative scenarios, capacity & failover",
-        color: "var(--accent-1)",
-      },
-      {
-        id: "uat",
-        title: "User Acceptance Testing (UAT)",
-        sub: "Client test cases execution, defect fixing & sign-off",
-        color: "var(--accent-2)",
-      },
-      {
-        id: "golive",
-        title: "Go-Live & Hypercare",
-        sub: "Cutover, production validation, monitoring & handover",
-        color: "var(--accent-4)",
-      },
-    ];
-
-    let tasks = [
-      {
-        id: 1,
-        phaseId: "kickoff",
-        title: "Project Kick-off & Scope Freeze",
-        owner: "SR",
-        start: "2024-11-01",
-        end:   "2024-11-03",
-        status: "done",
-        notes:
-          "Kick-off meeting with client; agree on Flash scope, environments and high-level milestones.",
-      },
-      {
-        id: 2,
-        phaseId: "kickoff",
-        title: "Requirement Walkthrough & KT",
-        owner: "PM",
-        start: "2024-11-02",
-        end:   "2024-11-06",
-        status: "on-going",
-        notes:
-          "Detailed walkthrough of flows (MO/MT), charging rules, reporting, alarms and dependencies.",
-      },
-      {
-        id: 3,
-        phaseId: "config",
-        title: "Environment Readiness (UAT Flash)",
-        owner: "RK",
-        start: "2024-11-04",
-        end:   "2024-11-08",
-        status: "on-going",
-        notes:
-          "Validate UAT servers, connectivity, certificates, ports and base Flash installation.",
-      },
-      {
-        id: 4,
-        phaseId: "config",
-        title: "Flash Service Config & Routing Tables",
-        owner: "SR",
-        start: "2024-11-07",
-        end:   "2024-11-14",
-        status: "upcoming",
-        notes:
-          "Configure Flash applications, IN parameters, routing logic and failover rules as per design.",
-      },
-      {
-        id: 5,
-        phaseId: "integration",
-        title: "SDP / IVR Integration",
-        owner: "AB",
-        start: "2024-11-11",
-        end:   "2024-11-18",
-        status: "upcoming",
-        notes:
-          "End-to-end signalling integration with SDP / IVR, callback URLs and header validations.",
-      },
-      {
-        id: 6,
-        phaseId: "integration",
-        title: "Charging & Billing Validation",
-        owner: "RK",
-        start: "2024-11-15",
-        end:   "2024-11-20",
-        status: "upcoming",
-        notes:
-          "Validate charging IDs, rate plans, free/chargeable calls and CDR generation for Flash.",
-      },
-      {
-        id: 7,
-        phaseId: "sit",
-        title: "SIT – Core Call Flows",
-        owner: "SR",
-        start: "2024-11-19",
-        end:   "2024-11-25",
-        status: "upcoming",
-        notes:
-          "Run core inbound/outbound Flash scenarios, success & error flows, happy path coverage.",
-      },
-      {
-        id: 8,
-        phaseId: "sit",
-        title: "SIT – Negative & Load Scenarios",
-        owner: "AB",
-        start: "2024-11-23",
-        end:   "2024-11-28",
-        status: "upcoming",
-        notes:
-          "Negative, timeout, retry and basic load tests; ensure stability with multiple concurrent calls.",
-      },
-      {
-        id: 9,
-        phaseId: "uat",
-        title: "Client UAT Cycle",
-        owner: "PM",
-        start: "2024-11-26",
-        end:   "2024-12-05",
-        status: "upcoming",
-        notes:
-          "Client executes agreed UAT scenarios; track defects, re-deploy fixes and obtain UAT sign-off.",
-      },
-      {
-        id: 10,
-        phaseId: "golive",
-        title: "Production Cutover & Sanity",
-        owner: "RK",
-        start: "2024-12-06",
-        end:   "2024-12-08",
-        status: "upcoming",
-        notes:
-          "Migrate configs to PROD, perform controlled cutover, run sanity calls and confirm KPIs.",
-      },
-      {
-        id: 11,
-        phaseId: "golive",
-        title: "Hypercare Monitoring & Handover",
-        owner: "SR",
-        start: "2024-12-09",
-        end:   "2024-12-18",
-        status: "upcoming",
-        notes:
-          "Monitor Flash KPIs, alarms and CDRs; daily status with client and final handover to operations.",
-      },
-    ];
-
-    const timelineStart = new Date("2024-11-01");
-    const timelineEnd   = new Date("2024-12-20");
-
-    const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    const totalDays = Math.round((timelineEnd - timelineStart) / MS_PER_DAY) + 1;
-
-    function dateToDayIndex(dateStr) {
-      const d = new Date(dateStr);
-      return Math.round((d - timelineStart) / MS_PER_DAY);
-    }
-
-    const phaseListEl = document.getElementById("phaseList");
-    const headerRowEl = document.getElementById("timelineHeaderRow");
-    const gridEl = document.getElementById("timelineGrid");
-    const tooltipEl = document.getElementById("tooltip");
-    const detailsEl = document.getElementById("taskDetails");
-    const selectedStatusLabel = document.getElementById("selectedStatusLabel");
-
-    phases.forEach(phase => {
-      const li = document.createElement("li");
-      li.className = "phase-row";
-      li.dataset.phaseId = phase.id;
-      li.innerHTML = `
-        <div class="phase-title" contenteditable="true">${phase.title}</div>
-        <div class="phase-sub" contenteditable="true">${phase.sub}</div>
+      bar.innerHTML = `
+        <span class="task-pill">${statusLabel}</span>
+        <span class="task-title">${task.title}</span>
+        <span class="task-avatar">${task.owner}</span>
       `;
-      phaseListEl.appendChild(li);
+
+      row.appendChild(bar);
     });
 
-    for (let i = 0; i < totalDays; i++) {
-      const date = new Date(timelineStart.getTime() + i * MS_PER_DAY);
-      const day = date.getDate();
-      const short = date.toLocaleDateString("en-GB", { weekday: "short" });
-      const cell = document.createElement("div");
-      cell.className = "timeline-day";
-      cell.innerHTML = `<div>${day}</div><div style="font-size:9px;">${short}</div>`;
-      headerRowEl.appendChild(cell);
-    }
+    attachTaskEvents();
+  }
 
-    phases.forEach(phase => {
-      const row = document.createElement("div");
-      row.className = "timeline-grid-row";
-      row.dataset.phaseId = phase.id;
-      gridEl.appendChild(row);
-    });
+  function renderTodayLine() {
+    const today = new Date();
+    if (today < timelineStart || today > timelineEnd) return;
 
-    function clearTaskBars() {
-      document.querySelectorAll(".task-bar").forEach(el => el.remove());
-    }
+    const index = Math.round((today - timelineStart) / MS_PER_DAY);
+    const leftPercent = (index / totalDays) * 100;
 
-    function renderTasks(filterStatus = "all") {
-      clearTaskBars();
+    const todayLine = document.getElementById("todayLine");
+    todayLine.style.display = "block";
+    todayLine.style.left = leftPercent + "%";
 
-      tasks.forEach(task => {
-        if (filterStatus !== "all" && task.status !== filterStatus) return;
+    const label = todayLine.querySelector(".today-label");
+    label.style.left = "0";
+    label.style.transform = "translate(-50%, -70%)";
+  }
 
-        const row = document.querySelector(`.timeline-grid-row[data-phase-id="${task.phaseId}"]`);
-        if (!row) return;
+  function moveTooltip(e) {
+    const padding = 12;
+    tooltipEl.style.left = e.clientX + padding + "px";
+    tooltipEl.style.top  = e.clientY + padding + "px";
+  }
 
-        const startIndex = dateToDayIndex(task.start);
-        const endIndex   = dateToDayIndex(task.end);
-        const durationDays = endIndex - startIndex + 1;
+  function showTaskDetails(taskId) {
+    const task  = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const phase = phases.find(p => p.id === task.phaseId);
+    const phaseTitle = phase ? phase.title : "";
+    const statusText =
+      task.status === "done" ? "Done" :
+      task.status === "on-going" ? "On-Going" : "Upcoming";
 
-        const leftPercent  = (startIndex / totalDays) * 100;
-        const widthPercent = (durationDays / totalDays) * 100;
+    selectedStatusLabel.textContent = statusText;
+    detailsEl.innerHTML = `
+      <p><strong>${task.title}</strong></p>
+      <p style="margin-top:4px;">${task.notes || ""}</p>
+      <div class="pill-row">
+        <span class="info-pill">Phase: ${phaseTitle}</span>
+        <span class="info-pill">Owner: ${task.owner}</span>
+        <span class="info-pill">Start: ${task.start}</span>
+        <span class="info-pill">End: ${task.end}</span>
+        <span class="info-pill">Status: ${statusText}</span>
+      </div>
+    `;
+  }
 
-        const bar = document.createElement("div");
-        bar.className = "task-bar";
-        bar.dataset.taskId = task.id;
-        bar.dataset.status = task.status;
-
-        const phase = phases.find(p => p.id === task.phaseId);
-        const bgColor = phase ? phase.color : "var(--accent-1)";
-        bar.style.background = bgColor;
-        bar.style.left  = leftPercent + "%";
-        bar.style.width = widthPercent + "%";
-
-        const statusLabel =
-          task.status === "done" ? "Done" :
-          task.status === "on-going" ? "On-Going" : "Upcoming";
-
-        bar.innerHTML = `
-          <span class="task-pill">${statusLabel}</span>
-          <span class="task-title">${task.title}</span>
-          <span class="task-avatar">${task.owner}</span>
-        `;
-
-        row.appendChild(bar);
-      });
-
-      attachTaskEvents();
-    }
-
-    function renderTodayLine() {
-      const today = new Date();
-      if (today < timelineStart || today > timelineEnd) return;
-
-      const index = Math.round((today - timelineStart) / MS_PER_DAY);
-      const leftPercent = (index / totalDays) * 100;
-
-      const todayLine = document.getElementById("todayLine");
-      todayLine.style.display = "block";
-      todayLine.style.left = leftPercent + "%";
-
-      const label = todayLine.querySelector(".today-label");
-      label.style.left = "0";
-      label.style.transform = "translate(-50%, -70%)";
-    }
-
-    function moveTooltip(e) {
-      const padding = 12;
-      tooltipEl.style.left = e.clientX + padding + "px";
-      tooltipEl.style.top  = e.clientY + padding + "px";
-    }
-
-    function showTaskDetails(taskId) {
-      const task  = tasks.find(t => t.id === taskId);
+  function attachTaskEvents() {
+    document.querySelectorAll(".task-bar").forEach(bar => {
+      const taskId = Number(bar.dataset.taskId);
+      const task = tasks.find(t => t.id === taskId);
       if (!task) return;
       const phase = phases.find(p => p.id === task.phaseId);
       const phaseTitle = phase ? phase.title : "";
@@ -858,197 +406,158 @@
         task.status === "done" ? "Done" :
         task.status === "on-going" ? "On-Going" : "Upcoming";
 
-      selectedStatusLabel.textContent = statusText;
-      detailsEl.innerHTML = `
-        <p><strong>${task.title}</strong></p>
-        <p style="margin-top:4px;">${task.notes || ""}</p>
-        <div class="pill-row">
-          <span class="info-pill">Phase: ${phaseTitle}</span>
-          <span class="info-pill">Owner: ${task.owner}</span>
-          <span class="info-pill">Start: ${task.start}</span>
-          <span class="info-pill">End: ${task.end}</span>
-          <span class="info-pill">Status: ${statusText}</span>
-        </div>
-      `;
-    }
-
-    function attachTaskEvents() {
-      document.querySelectorAll(".task-bar").forEach(bar => {
-        const taskId = Number(bar.dataset.taskId);
-        const task = tasks.find(t => t.id === taskId);
-        if (!task) return;
-        const phase = phases.find(p => p.id === task.phaseId);
-        const phaseTitle = phase ? phase.title : "";
-        const statusText =
-          task.status === "done" ? "Done" :
-          task.status === "on-going" ? "On-Going" : "Upcoming";
-
-        bar.addEventListener("mouseenter", e => {
-          tooltipEl.innerHTML = `
-            <div class="tooltip-title">${task.title}</div>
-            <div class="tooltip-line">
-              <span><strong>Phase:</strong> ${phaseTitle}</span>
-              <span><strong>Owner:</strong> ${task.owner}</span>
-            </div>
-            <div class="tooltip-line" style="margin-top:4px;">
-              <span><strong>Start:</strong> ${task.start}</span>
-              <span><strong>End:</strong> ${task.end}</span>
-            </div>
-            <div style="margin-top:4px;"><strong>Status:</strong> ${statusText}</div>
-          `;
-          tooltipEl.classList.add("visible");
-          moveTooltip(e);
-        });
-
-        bar.addEventListener("mousemove", moveTooltip);
-        bar.addEventListener("mouseleave", () => tooltipEl.classList.remove("visible"));
-
-        bar.addEventListener("click", () => {
-          document.querySelectorAll(".task-bar").forEach(b => (b.style.outline = "none"));
-          bar.style.outline = "2px solid rgba(56, 189, 248, 0.85)";
-          fillEditorWithTask(taskId);
-          showTaskDetails(taskId);
-        });
-
-        // drag/drop target for status
-        bar.addEventListener("dragover", e => {
-          e.preventDefault();
-          bar.classList.add("drag-over");
-        });
-        bar.addEventListener("dragleave", () => {
-          bar.classList.remove("drag-over");
-        });
-        bar.addEventListener("drop", e => {
-          e.preventDefault();
-          bar.classList.remove("drag-over");
-          const newStatus = e.dataTransfer.getData("text/status");
-          if (!newStatus) return;
-          task.status = newStatus;
-          populateTaskSelect();
-          renderTasks(document.querySelector(".chip--active").dataset.filter);
-          fillEditorWithTask(taskId);
-          showTaskDetails(taskId);
-        });
-
-        // NEW: make the pill itself draggable as a status "sticker"
-        const pill = bar.querySelector(".task-pill");
-        if (pill) {
-          pill.setAttribute("draggable", "true");
-          pill.addEventListener("dragstart", e => {
-            // don't trigger bar drag logic
-            e.stopPropagation();
-            e.dataTransfer.setData("text/status", task.status);
-          });
-        }
+      // tooltip
+      bar.addEventListener("mouseenter", e => {
+        tooltipEl.innerHTML = `
+          <div class="tooltip-title">${task.title}</div>
+          <div class="tooltip-line">
+            <span><strong>Phase:</strong> ${phaseTitle}</span>
+            <span><strong>Owner:</strong> ${task.owner}</span>
+          </div>
+          <div class="tooltip-line" style="margin-top:4px;">
+            <span><strong>Start:</strong> ${task.start}</span>
+            <span><strong>End:</strong> ${task.end}</span>
+          </div>
+          <div style="margin-top:4px;"><strong>Status:</strong> ${statusText}</div>
+        `;
+        tooltipEl.classList.add("visible");
+        moveTooltip(e);
       });
-    }
 
-    document.querySelectorAll(".chip").forEach(chip => {
-      chip.addEventListener("click", () => {
-        const filter = chip.dataset.filter;
-        document.querySelectorAll(".chip").forEach(c => c.classList.remove("chip--active"));
-        chip.classList.add("chip--active");
-        renderTasks(filter);
+      bar.addEventListener("mousemove", moveTooltip);
+      bar.addEventListener("mouseleave", () => tooltipEl.classList.remove("visible"));
+
+      bar.addEventListener("click", () => {
+        document.querySelectorAll(".task-bar").forEach(b => (b.style.outline = "none"));
+        bar.style.outline = "2px solid rgba(56, 189, 248, 0.85)";
+        fillEditorWithTask(taskId);
+        showTaskDetails(taskId);
       });
-    });
 
-    document.querySelectorAll(".status-sticker").forEach(sticker => {
-      sticker.addEventListener("dragstart", e => {
-        e.dataTransfer.setData("text/status", sticker.dataset.status);
+      // while dragging a status, highlight bar under cursor
+      bar.addEventListener("pointerenter", () => {
+        if (currentDragStatus) bar.classList.add("drag-over");
       });
-    });
-
-    const taskSelect = document.getElementById("taskSelect");
-    const phaseSelect = document.getElementById("taskPhase");
-    const titleInput = document.getElementById("taskTitle");
-    const ownerInput = document.getElementById("taskOwner");
-    const statusSelect = document.getElementById("taskStatus");
-    const startInput = document.getElementById("taskStart");
-    const endInput   = document.getElementById("taskEnd");
-    const notesInput = document.getElementById("taskNotes");
-
-    function populatePhaseSelect() {
-      phaseSelect.innerHTML = "";
-      phases.forEach(p => {
-        const opt = document.createElement("option");
-        opt.value = p.id;
-        opt.textContent = p.title;
-        phaseSelect.appendChild(opt);
+      bar.addEventListener("pointerleave", () => {
+        bar.classList.remove("drag-over");
       });
-    }
 
-    function populateTaskSelect() {
-      taskSelect.innerHTML = "";
-      tasks.forEach(t => {
-        const opt = document.createElement("option");
-        opt.value = t.id;
-        opt.textContent = `${t.id}. ${t.title}`;
-        taskSelect.appendChild(opt);
-      });
-    }
-
-    function fillEditorWithTask(taskId) {
-      const task = tasks.find(t => t.id === Number(taskId));
-      if (!task) return;
-      taskSelect.value = task.id;
-      titleInput.value  = task.title;
-      ownerInput.value  = task.owner;
-      phaseSelect.value = task.phaseId;
-      statusSelect.value = task.status;
-      startInput.value  = task.start;
-      endInput.value    = task.end;
-      notesInput.value  = task.notes || "";
-    }
-
-    taskSelect.addEventListener("change", () => {
-      fillEditorWithTask(taskSelect.value);
-      showTaskDetails(Number(taskSelect.value));
+      // make the pill itself a drag source for its status
+      const pill = bar.querySelector(".task-pill");
+      makeStatusDragSource(pill, () => task.status);
     });
+  }
 
-    document.getElementById("saveTaskBtn").addEventListener("click", () => {
-      const id = Number(taskSelect.value);
-      const task = tasks.find(t => t.id === id);
-      if (!task) return;
+  /* ---------- filters ---------- */
 
-      task.title   = titleInput.value.trim() || "Untitled Task";
-      task.owner   = ownerInput.value.trim() || "--";
-      task.phaseId = phaseSelect.value;
-      task.status  = statusSelect.value;
-      if (startInput.value) task.start = startInput.value;
-      if (endInput.value)   task.end   = endInput.value;
-      task.notes   = notesInput.value.trim();
-
-      populateTaskSelect();
-      renderTasks(document.querySelector(".chip--active").dataset.filter);
-      fillEditorWithTask(id);
-      showTaskDetails(id);
+  document.querySelectorAll(".chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const filter = chip.dataset.filter;
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("chip--active"));
+      chip.classList.add("chip--active");
+      renderTasks(filter);
     });
+  });
 
-    document.getElementById("addTaskBtn").addEventListener("click", () => {
-      const newId = tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-      const newTask = {
-        id: newId,
-        title: titleInput.value.trim() || "New Task",
-        owner: ownerInput.value.trim() || "--",
-        phaseId: phaseSelect.value,
-        status: statusSelect.value,
-        start: startInput.value || new Date().toISOString().slice(0,10),
-        end:   endInput.value   || new Date().toISOString().slice(0,10),
-        notes: notesInput.value.trim(),
-      };
-      tasks.push(newTask);
-      populateTaskSelect();
-      renderTasks(document.querySelector(".chip--active").dataset.filter);
-      fillEditorWithTask(newId);
-      showTaskDetails(newId);
+  /* ---------- make right-side stickers drag sources ---------- */
+
+  document.querySelectorAll(".status-sticker").forEach(sticker => {
+    makeStatusDragSource(sticker, () => sticker.dataset.status);
+  });
+
+  /* ---------- task editor wiring ---------- */
+
+  const taskSelect = document.getElementById("taskSelect");
+  const phaseSelect = document.getElementById("taskPhase");
+  const titleInput = document.getElementById("taskTitle");
+  const ownerInput = document.getElementById("taskOwner");
+  const statusSelect = document.getElementById("taskStatus");
+  const startInput = document.getElementById("taskStart");
+  const endInput   = document.getElementById("taskEnd");
+  const notesInput = document.getElementById("taskNotes");
+
+  function populatePhaseSelect() {
+    phaseSelect.innerHTML = "";
+    phases.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.title;
+      phaseSelect.appendChild(opt);
     });
+  }
 
-    populatePhaseSelect();
+  function populateTaskSelect() {
+    taskSelect.innerHTML = "";
+    tasks.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = `${t.id}. ${t.title}`;
+      taskSelect.appendChild(opt);
+    });
+  }
+
+  function fillEditorWithTask(taskId) {
+    const task = tasks.find(t => t.id === Number(taskId));
+    if (!task) return;
+    taskSelect.value = task.id;
+    titleInput.value  = task.title;
+    ownerInput.value  = task.owner;
+    phaseSelect.value = task.phaseId;
+    statusSelect.value = task.status;
+    startInput.value  = task.start;
+    endInput.value    = task.end;
+    notesInput.value  = task.notes || "";
+  }
+
+  taskSelect.addEventListener("change", () => {
+    fillEditorWithTask(taskSelect.value);
+    showTaskDetails(Number(taskSelect.value));
+  });
+
+  document.getElementById("saveTaskBtn").addEventListener("click", () => {
+    const id = Number(taskSelect.value);
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    task.title   = titleInput.value.trim() || "Untitled Task";
+    task.owner   = ownerInput.value.trim() || "--";
+    task.phaseId = phaseSelect.value;
+    task.status  = statusSelect.value;
+    if (startInput.value) task.start = startInput.value;
+    if (endInput.value)   task.end   = endInput.value;
+    task.notes   = notesInput.value.trim();
+
     populateTaskSelect();
-    fillEditorWithTask(tasks[0].id);
-    showTaskDetails(tasks[0].id);
-    renderTasks("all");
-    renderTodayLine();
-  </script>
-</body>
-</html>
+    renderTasks(document.querySelector(".chip--active").dataset.filter);
+    fillEditorWithTask(id);
+    showTaskDetails(id);
+  });
+
+  document.getElementById("addTaskBtn").addEventListener("click", () => {
+    const newId = tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+    const newTask = {
+      id: newId,
+      title: titleInput.value.trim() || "New Task",
+      owner: ownerInput.value.trim() || "--",
+      phaseId: phaseSelect.value,
+      status: statusSelect.value,
+      start: startInput.value || new Date().toISOString().slice(0,10),
+      end:   endInput.value   || new Date().toISOString().slice(0,10),
+      notes: notesInput.value.trim(),
+    };
+    tasks.push(newTask);
+    populateTaskSelect();
+    renderTasks(document.querySelector(".chip--active").dataset.filter);
+    fillEditorWithTask(newId);
+    showTaskDetails(newId);
+  });
+
+  /* ---------- init ---------- */
+
+  populatePhaseSelect();
+  populateTaskSelect();
+  fillEditorWithTask(tasks[0].id);
+  showTaskDetails(tasks[0].id);
+  renderTasks("all");
+  renderTodayLine();
+</script>
