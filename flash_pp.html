@@ -155,7 +155,7 @@
       min-height: 60px;
     }
     .phase-title { font-size: 13px; font-weight: 600; }
-    .phase-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.3; }
+    .phase-sub  { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.3; }
 
     .timeline-wrapper {
       position: relative;
@@ -225,9 +225,16 @@
       box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
       transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
     }
-    .task-bar[data-status="done"] { opacity: 0.92; }
+    .task-bar[data-status="done"]     { opacity: 0.92; }
     .task-bar[data-status="upcoming"] { opacity: 0.9; border: 1px solid rgba(255,255,255,0.7); }
-    .task-bar:hover { transform: translateY(-55%) scale(1.02); box-shadow: 0 16px 32px rgba(15,23,42,0.35); }
+    .task-bar.drag-over {
+      outline: 2px dashed rgba(56,189,248,0.9);
+      outline-offset: 1px;
+    }
+    .task-bar:hover {
+      transform: translateY(-55%) scale(1.02);
+      box-shadow: 0 16px 32px rgba(15,23,42,0.35);
+    }
 
     .task-pill {
       padding: 2px 7px;
@@ -369,6 +376,42 @@
     }
     .btn-primary { background: #4f46e5; color: #f9fafb; }
     .btn-secondary { background: #e5e7eb; color: #111827; }
+
+    /* draggable status stickers */
+    .sticker-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .status-sticker {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: grab;
+      user-select: none;
+      color: #0f172a;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background: #f9fafb;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
+    }
+    .status-sticker[data-status="done"] {
+      background: #bbf7d0;
+      border-color: #22c55e;
+    }
+    .status-sticker[data-status="on-going"] {
+      background: #bae6fd;
+      border-color: #0ea5e9;
+    }
+    .status-sticker[data-status="upcoming"] {
+      background: #fef9c3;
+      border-color: #facc15;
+    }
   </style>
 </head>
 <body>
@@ -384,7 +427,9 @@
         <div class="header-block">
           <div class="title-row">
             <h1 contenteditable="true">Implementation Gantt – Flash Service</h1>
-            <span contenteditable="true">Click a task bar or use the editor on the right to update details.</span>
+            <span contenteditable="true">
+              Click a task bar or drag a status sticker onto it. You can also edit via the Task Editor.
+            </span>
           </div>
 
           <div class="filters">
@@ -502,12 +547,24 @@
         </div>
 
         <div class="panel">
+          <div class="panel-title">
+            Status Stickers
+            <span style="font-size:10px;">Drag onto any task bar</span>
+          </div>
+          <div class="sticker-row">
+            <div class="status-sticker" data-status="done" draggable="true">Done</div>
+            <div class="status-sticker" data-status="on-going" draggable="true">On-Going</div>
+            <div class="status-sticker" data-status="upcoming" draggable="true">Upcoming</div>
+          </div>
+        </div>
+
+        <div class="panel">
           <div class="panel-title">Tips</div>
           <div style="font-size:11px; color:var(--text-muted);">
             <ul style="padding-left:16px; margin-top:2px;">
-              <li>Headings and labels with a dashed underline are directly editable.</li>
-              <li>Use the Task Editor to update dates, owner, phase or status.</li>
-              <li>Refresh will reset the page (changes are not saved to GitHub automatically).</li>
+              <li>Drag a status sticker (Done / On-Going / Upcoming) onto a bar to change its status.</li>
+              <li>Headings and phase descriptions can be edited by typing.</li>
+              <li>Task Editor lets you adjust dates, owner, phase and notes.</li>
             </ul>
           </div>
         </div>
@@ -824,46 +881,6 @@
       tooltipEl.style.top  = e.clientY + padding + "px";
     }
 
-    function attachTaskEvents() {
-      document.querySelectorAll(".task-bar").forEach(bar => {
-        const taskId = Number(bar.dataset.taskId);
-        const task = tasks.find(t => t.id === taskId);
-        if (!task) return;
-        const phase = phases.find(p => p.id === task.phaseId);
-        const phaseTitle = phase ? phase.title : "";
-        const statusText =
-          task.status === "done" ? "Done" :
-          task.status === "on-going" ? "On-Going" : "Upcoming";
-
-        bar.addEventListener("mouseenter", e => {
-          tooltipEl.innerHTML = `
-            <div class="tooltip-title">${task.title}</div>
-            <div class="tooltip-line">
-              <span><strong>Phase:</strong> ${phaseTitle}</span>
-              <span><strong>Owner:</strong> ${task.owner}</span>
-            </div>
-            <div class="tooltip-line" style="margin-top:4px;">
-              <span><strong>Start:</strong> ${task.start}</span>
-              <span><strong>End:</strong> ${task.end}</span>
-            </div>
-            <div style="margin-top:4px;"><strong>Status:</strong> ${statusText}</div>
-          `;
-          tooltipEl.classList.add("visible");
-          moveTooltip(e);
-        });
-
-        bar.addEventListener("mousemove", moveTooltip);
-        bar.addEventListener("mouseleave", () => tooltipEl.classList.remove("visible"));
-
-        bar.addEventListener("click", () => {
-          document.querySelectorAll(".task-bar").forEach(b => (b.style.outline = "none"));
-          bar.style.outline = "2px solid rgba(56, 189, 248, 0.85)";
-          fillEditorWithTask(taskId);
-          showTaskDetails(taskId);
-        });
-      });
-    }
-
     function showTaskDetails(taskId) {
       const task  = tasks.find(t => t.id === taskId);
       if (!task) return;
@@ -887,6 +904,70 @@
       `;
     }
 
+    function attachTaskEvents() {
+      document.querySelectorAll(".task-bar").forEach(bar => {
+        const taskId = Number(bar.dataset.taskId);
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+        const phase = phases.find(p => p.id === task.phaseId);
+        const phaseTitle = phase ? phase.title : "";
+        const statusText =
+          task.status === "done" ? "Done" :
+          task.status === "on-going" ? "On-Going" : "Upcoming";
+
+        // tooltip
+        bar.addEventListener("mouseenter", e => {
+          tooltipEl.innerHTML = `
+            <div class="tooltip-title">${task.title}</div>
+            <div class="tooltip-line">
+              <span><strong>Phase:</strong> ${phaseTitle}</span>
+              <span><strong>Owner:</strong> ${task.owner}</span>
+            </div>
+            <div class="tooltip-line" style="margin-top:4px;">
+              <span><strong>Start:</strong> ${task.start}</span>
+              <span><strong>End:</strong> ${task.end}</span>
+            </div>
+            <div style="margin-top:4px;"><strong>Status:</strong> ${statusText}</div>
+          `;
+          tooltipEl.classList.add("visible");
+          moveTooltip(e);
+        });
+
+        bar.addEventListener("mousemove", moveTooltip);
+        bar.addEventListener("mouseleave", () => tooltipEl.classList.remove("visible"));
+
+        // click = select into editor
+        bar.addEventListener("click", () => {
+          document.querySelectorAll(".task-bar").forEach(b => (b.style.outline = "none"));
+          bar.style.outline = "2px solid rgba(56, 189, 248, 0.85)";
+          fillEditorWithTask(taskId);
+          showTaskDetails(taskId);
+        });
+
+        // drag-drop: allow sticker drop
+        bar.addEventListener("dragover", e => {
+          e.preventDefault();
+          bar.classList.add("drag-over");
+        });
+        bar.addEventListener("dragleave", () => {
+          bar.classList.remove("drag-over");
+        });
+        bar.addEventListener("drop", e => {
+          e.preventDefault();
+          bar.classList.remove("drag-over");
+          const newStatus = e.dataTransfer.getData("text/status");
+          if (!newStatus) return;
+          // update task status
+          task.status = newStatus;
+          // keep other fields same, re-render
+          populateTaskSelect();
+          renderTasks(document.querySelector(".chip--active").dataset.filter);
+          fillEditorWithTask(taskId);
+          showTaskDetails(taskId);
+        });
+      });
+    }
+
     /* ========= FILTER BUTTONS ========= */
 
     document.querySelectorAll(".chip").forEach(chip => {
@@ -898,6 +979,14 @@
       });
     });
 
+    /* ========= STATUS STICKER DRAG ========= */
+
+    document.querySelectorAll(".status-sticker").forEach(sticker => {
+      sticker.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/status", sticker.dataset.status);
+      });
+    });
+
     /* ========= TASK EDITOR ========= */
 
     const taskSelect = document.getElementById("taskSelect");
@@ -906,7 +995,7 @@
     const ownerInput = document.getElementById("taskOwner");
     const statusSelect = document.getElementById("taskStatus");
     const startInput = document.getElementById("taskStart");
-    const endInput = document.getElementById("taskEnd");
+    const endInput   = document.getElementById("taskEnd");
     const notesInput = document.getElementById("taskNotes");
 
     function populatePhaseSelect() {
@@ -937,9 +1026,9 @@
       ownerInput.value  = task.owner;
       phaseSelect.value = task.phaseId;
       statusSelect.value = task.status;
-      startInput.value = task.start;
-      endInput.value   = task.end;
-      notesInput.value = task.notes || "";
+      startInput.value  = task.start;
+      endInput.value    = task.end;
+      notesInput.value  = task.notes || "";
     }
 
     taskSelect.addEventListener("change", () => {
@@ -952,8 +1041,8 @@
       const task = tasks.find(t => t.id === id);
       if (!task) return;
 
-      task.title  = titleInput.value.trim() || "Untitled Task";
-      task.owner  = ownerInput.value.trim() || "--";
+      task.title   = titleInput.value.trim() || "Untitled Task";
+      task.owner   = ownerInput.value.trim() || "--";
       task.phaseId = phaseSelect.value;
       task.status  = statusSelect.value;
       if (startInput.value) task.start = startInput.value;
