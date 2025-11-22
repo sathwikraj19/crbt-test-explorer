@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Flash Service – Project Plan (Interactive Gantt)</title>
+  <title>Flash Service Project Plan – Interactive</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -10,32 +10,24 @@
       --bg: #0f172a;
       --surface: #ffffff;
       --border: #e2e8f0;
-      --border-soft: #edf2ff;
       --text-main: #0f172a;
       --text-muted: #6b7280;
       --accent-1: #6366f1;
       --accent-2: #0ea5e9;
       --accent-3: #22c55e;
-      --accent-4: #0f172a;
+      --accent-4: #111827;
       --accent-warning: #facc15;
       --accent-danger: #f97373;
       --chip-bg: #eef2ff;
       --radius-lg: 16px;
-      --radius-md: 10px;
-      --radius-sm: 6px;
       --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.13);
       --grid-line: #e5e7eb;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh;
       background: radial-gradient(circle at top left, #4f46e5, #0f172a 55%);
       color: var(--text-main);
@@ -55,55 +47,41 @@
       overflow: hidden;
     }
 
-    /* TOP BAR */
+    /* top bar */
     .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 18px 8px;
+      padding: 12px 18px;
       border-bottom: 1px solid rgba(148, 163, 184, 0.35);
       background: linear-gradient(90deg, #4f46e5, #0ea5e9);
       color: #e5e7eb;
+      font-size: 13px;
     }
+    .topbar small { font-size: 11px; opacity: 0.9; }
 
-    .topbar-title {
-      font-size: 14px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      font-weight: 500;
-    }
-
-    .topbar-right {
-      font-size: 11px;
-      opacity: 0.9;
-    }
-
-    /* MAIN LAYOUT */
+    /* layout */
     .main-layout {
       display: grid;
       grid-template-columns: minmax(0, 2.1fr) minmax(270px, 0.9fr);
       gap: 0;
-      padding: 14px 16px 16px;
+      padding: 12px 16px 16px;
     }
-
-    .left,
-    .right {
-      padding: 10px;
-    }
+    .left, .right { padding: 10px; }
 
     @media (max-width: 900px) {
-      .main-layout {
-        grid-template-columns: minmax(0, 1fr);
-      }
-      .right {
-        padding-top: 0;
-      }
+      .main-layout { grid-template-columns: minmax(0, 1fr); }
+      .right { padding-top: 0; }
     }
 
-    /* HEADING & FILTERS */
-    .header-block {
-      margin-bottom: 10px;
+    /* editable text marker */
+    [contenteditable="true"] {
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.6);
+      padding-bottom: 2px;
+      cursor: text;
     }
+
+    .header-block { margin-bottom: 10px; }
 
     .title-row {
       display: flex;
@@ -112,16 +90,8 @@
       gap: 8px;
       align-items: baseline;
     }
-
-    .title-row h1 {
-      font-size: 19px;
-      font-weight: 700;
-    }
-
-    .title-row span {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
+    .title-row h1 { font-size: 19px; font-weight: 700; }
+    .title-row span { font-size: 11px; color: var(--text-muted); }
 
     .filters {
       display: flex;
@@ -129,6 +99,7 @@
       flex-wrap: wrap;
       margin-top: 8px;
       font-size: 11px;
+      align-items: center;
     }
 
     .chip {
@@ -143,29 +114,12 @@
       user-select: none;
       transition: background 0.15s ease, transform 0.12s ease;
     }
+    .chip-dot { width: 7px; height: 7px; border-radius: 999px; }
+    .chip:hover { transform: translateY(-1px); background: #e0e7ff; }
+    .chip--active { background: #4f46e5; color: #e5e7eb; border-color: transparent; }
+    .chip--active .chip-dot { background: #e5e7eb !important; }
 
-    .chip-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-    }
-
-    .chip:hover {
-      transform: translateY(-1px);
-      background: #e0e7ff;
-    }
-
-    .chip--active {
-      background: #4f46e5;
-      color: #e5e7eb;
-      border-color: transparent;
-    }
-
-    .chip--active .chip-dot {
-      background: #e5e7eb !important;
-    }
-
-    /* GANTT LAYOUT */
+    /* gantt */
     .gantt-shell {
       border-radius: var(--radius-lg);
       border: 1px solid var(--border);
@@ -174,15 +128,9 @@
       grid-template-columns: 180px minmax(0, 1fr);
       overflow: hidden;
     }
-
     @media (max-width: 640px) {
-      .gantt-shell {
-        grid-template-columns: minmax(0, 1fr);
-      }
-      .gantt-phases {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-      }
+      .gantt-shell { grid-template-columns: minmax(0, 1fr); }
+      .gantt-phases { border-right: none; border-bottom: 1px solid var(--border); }
     }
 
     .gantt-phases {
@@ -190,8 +138,7 @@
       border-right: 1px solid var(--border);
     }
 
-    .gantt-header,
-    .timeline-header {
+    .gantt-header, .timeline-header {
       padding: 8px 10px;
       font-size: 11px;
       text-transform: uppercase;
@@ -199,32 +146,16 @@
       color: var(--text-muted);
       background: rgba(248, 250, 252, 0.95);
       border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
 
-    .phases-list {
-      list-style: none;
-    }
-
+    .phases-list { list-style: none; }
     .phase-row {
       padding: 12px 10px;
       border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
       min-height: 60px;
     }
-
-    .phase-title {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .phase-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 3px;
-      line-height: 1.3;
-    }
+    .phase-title { font-size: 13px; font-weight: 600; }
+    .phase-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.3; }
 
     .timeline-wrapper {
       position: relative;
@@ -233,11 +164,7 @@
       -webkit-overflow-scrolling: touch;
       background: #ffffff;
     }
-
-    .timeline-inner {
-      min-width: 700px;
-      position: relative;
-    }
+    .timeline-inner { min-width: 700px; position: relative; }
 
     .timeline-header-row {
       display: grid;
@@ -248,15 +175,9 @@
       color: var(--text-muted);
       padding: 8px 0;
     }
+    .timeline-day { border-left: 1px solid #f1f5f9; }
 
-    .timeline-day {
-      border-left: 1px solid #f1f5f9;
-    }
-
-    .timeline-grid {
-      position: relative;
-    }
-
+    .timeline-grid { position: relative; }
     .timeline-grid-row {
       height: 60px;
       border-top: 1px solid var(--grid-line);
@@ -265,14 +186,12 @@
 
     .today-line {
       position: absolute;
-      top: 0;
-      bottom: 0;
+      top: 0; bottom: 0;
       width: 2px;
       background: var(--accent-danger);
       box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45);
       pointer-events: none;
     }
-
     .today-label {
       position: absolute;
       top: 2px;
@@ -287,7 +206,6 @@
       white-space: nowrap;
     }
 
-    /* TASK BARS */
     .task-bar {
       position: absolute;
       top: 50%;
@@ -307,20 +225,9 @@
       box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
       transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
     }
-
-    .task-bar[data-status="done"] {
-      opacity: 0.92;
-    }
-
-    .task-bar[data-status="upcoming"] {
-      opacity: 0.9;
-      border: 1px solid rgba(255, 255, 255, 0.7);
-    }
-
-    .task-bar:hover {
-      transform: translateY(-55%) scale(1.02);
-      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.35);
-    }
+    .task-bar[data-status="done"] { opacity: 0.92; }
+    .task-bar[data-status="upcoming"] { opacity: 0.9; border: 1px solid rgba(255,255,255,0.7); }
+    .task-bar:hover { transform: translateY(-55%) scale(1.02); box-shadow: 0 16px 32px rgba(15,23,42,0.35); }
 
     .task-pill {
       padding: 2px 7px;
@@ -330,10 +237,8 @@
       text-transform: uppercase;
       letter-spacing: 0.12em;
     }
-
     .task-avatar {
-      width: 18px;
-      height: 18px;
+      width: 18px; height: 18px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.92);
       display: inline-flex;
@@ -344,12 +249,8 @@
       color: var(--text-main);
       flex-shrink: 0;
     }
+    .task-title { font-weight: 600; }
 
-    .task-title {
-      font-weight: 600;
-    }
-
-    /* TOOLTIP */
     .tooltip {
       position: fixed;
       pointer-events: none;
@@ -366,25 +267,11 @@
       max-width: 260px;
       line-height: 1.4;
     }
+    .tooltip.visible { opacity: 1; transform: translateY(0); }
+    .tooltip-title { font-weight: 600; margin-bottom: 4px; color: #f9fafb; }
+    .tooltip-line { display: flex; justify-content: space-between; gap: 12px; }
 
-    .tooltip.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .tooltip-title {
-      font-weight: 600;
-      margin-bottom: 4px;
-      color: #f9fafb;
-    }
-
-    .tooltip-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    /* RIGHT PANEL */
+    /* right panels */
     .panel {
       background: rgba(255, 255, 255, 0.94);
       border-radius: var(--radius-lg);
@@ -392,7 +279,6 @@
       padding: 10px 11px;
       margin-bottom: 10px;
     }
-
     .panel-title {
       font-size: 12px;
       text-transform: uppercase;
@@ -404,55 +290,16 @@
       align-items: center;
     }
 
-    .avatars {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
+    .avatars { display: flex; flex-wrap: wrap; gap: 6px; }
     .avatar {
-      width: 28px;
-      height: 28px;
+      width: 28px; height: 28px;
       border-radius: 999px;
       display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      align-items: center; justify-content: center;
       color: #f9fafb;
-      font-weight: 600;
-      font-size: 11px;
+      font-weight: 600; font-size: 11px;
       background: linear-gradient(135deg, #4f46e5, #ec4899);
       box-shadow: 0 6px 15px rgba(148, 163, 184, 0.7);
-    }
-
-    .avatar:nth-child(2) {
-      background: linear-gradient(135deg, #0ea5e9, #22c55e);
-    }
-    .avatar:nth-child(3) {
-      background: linear-gradient(135deg, #f97316, #ef4444);
-    }
-    .avatar:nth-child(4) {
-      background: linear-gradient(135deg, #a855f7, #6366f1);
-    }
-
-    .legend {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .legend-color {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
     }
 
     .task-details {
@@ -460,18 +307,12 @@
       color: var(--text-muted);
       line-height: 1.4;
     }
-
-    .task-details strong {
-      color: var(--text-main);
-    }
+    .task-details strong { color: var(--text-main); }
 
     .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 6px;
+      display: flex; flex-wrap: wrap;
+      gap: 6px; margin-top: 6px;
     }
-
     .info-pill {
       font-size: 10px;
       padding: 4px 7px;
@@ -480,23 +321,61 @@
       background: #f9fafb;
     }
 
-    .note-list {
-      font-size: 11px;
-      color: var(--text-muted);
-      padding-left: 16px;
+    /* Task editor form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 8px;
+      margin-top: 6px;
     }
+    @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
 
-    .note-list li {
-      margin-bottom: 3px;
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
+    .field label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      font-size: 11px;
+      padding: 5px 7px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      outline: none;
+      font-family: inherit;
+    }
+    .field textarea { resize: vertical; min-height: 48px; }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .btn {
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-primary { background: #4f46e5; color: #f9fafb; }
+    .btn-secondary { background: #e5e7eb; color: #111827; }
   </style>
 </head>
 <body>
   <div class="page">
-    <!-- TOP BAR -->
     <div class="topbar">
-      <div class="topbar-title">Flash Service Project Plan</div>
-      <div class="topbar-right">Environment: UAT &nbsp;|&nbsp; Owner: Implementation</div>
+      <div contenteditable="true">Flash Service Project Plan</div>
+      <small contenteditable="true">Environment: UAT | Owner: Implementation</small>
     </div>
 
     <div class="main-layout">
@@ -504,35 +383,31 @@
       <section class="left">
         <div class="header-block">
           <div class="title-row">
-            <h1>Implementation Gantt – Flash Service</h1>
-            <span>Tap / click a bar to view task details on the right.</span>
+            <h1 contenteditable="true">Implementation Gantt – Flash Service</h1>
+            <span contenteditable="true">Click a task bar or use the editor on the right to update details.</span>
           </div>
 
           <div class="filters">
-            <span style="align-self:center;">Status:</span>
-            <button class="chip chip--active" data-filter="all">
-              All
-            </button>
+            <span>Status:</span>
+            <button class="chip chip--active" data-filter="all">All</button>
             <button class="chip" data-filter="done">
-              <span class="chip-dot" style="background:#22c55e;"></span> Done
+              <span class="chip-dot" style="background:#22c55e;"></span>Done
             </button>
             <button class="chip" data-filter="on-going">
-              <span class="chip-dot" style="background:#0ea5e9;"></span> On-Going
+              <span class="chip-dot" style="background:#0ea5e9;"></span>On-Going
             </button>
             <button class="chip" data-filter="upcoming">
-              <span class="chip-dot" style="background:#facc15;"></span> Upcoming
+              <span class="chip-dot" style="background:#facc15;"></span>Upcoming
             </button>
           </div>
         </div>
 
         <div class="gantt-shell">
-          <!-- PHASES -->
           <aside class="gantt-phases">
             <div class="gantt-header">Phases</div>
             <ul class="phases-list" id="phaseList"></ul>
           </aside>
 
-          <!-- TIMELINE -->
           <section class="timeline-wrapper">
             <div class="timeline-inner">
               <div class="timeline-header">
@@ -548,40 +423,18 @@
         </div>
       </section>
 
-      <!-- RIGHT: PANELS -->
+      <!-- RIGHT: PANELS + EDITOR -->
       <aside class="right">
         <div class="panel">
           <div class="panel-title">
             Project Team
-            <span style="font-size:10px; color:var(--text-muted);">Sample names – edit in HTML</span>
+            <span style="font-size:10px;">Edit initials by typing</span>
           </div>
           <div class="avatars">
-            <div class="avatar">SR</div>
-            <div class="avatar">RK</div>
-            <div class="avatar">AB</div>
-            <div class="avatar">PM</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">Legend</div>
-          <div class="legend">
-            <div class="legend-item">
-              <span class="legend-color" style="background:var(--accent-1);"></span>
-              <span>Requirement & Design</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background:var(--accent-2);"></span>
-              <span>Development & Config</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background:var(--accent-3);"></span>
-              <span>Testing & UAT</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background:var(--accent-4);"></span>
-              <span>Go-Live & Monitoring</span>
-            </div>
+            <div class="avatar" contenteditable="true">SR</div>
+            <div class="avatar" contenteditable="true">RK</div>
+            <div class="avatar" contenteditable="true">AB</div>
+            <div class="avatar" contenteditable="true">PM</div>
           </div>
         </div>
 
@@ -591,17 +444,72 @@
             <span id="selectedStatusLabel" style="font-size:10px;"></span>
           </div>
           <div class="task-details" id="taskDetails">
-            <p>Select a task from the Gantt to view description, dates and owner here.</p>
+            <p>Select a task or choose from the Task Editor below.</p>
           </div>
         </div>
 
         <div class="panel">
-          <div class="panel-title">Notes</div>
-          <ul class="note-list">
-            <li>All dates are indicative; update as per client baseline plan.</li>
-            <li>Use the status filter above the chart to focus on specific work items.</li>
-            <li>You can edit phases/tasks directly in the HTML file (see JS section).</li>
-          </ul>
+          <div class="panel-title">
+            Task Editor
+            <span style="font-size:10px;">Changes update the chart immediately</span>
+          </div>
+
+          <div class="field">
+            <label for="taskSelect">Choose Task</label>
+            <select id="taskSelect"></select>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="taskTitle">Title</label>
+              <input id="taskTitle" type="text" />
+            </div>
+            <div class="field">
+              <label for="taskOwner">Owner (Initials)</label>
+              <input id="taskOwner" type="text" />
+            </div>
+            <div class="field">
+              <label for="taskPhase">Phase</label>
+              <select id="taskPhase"></select>
+            </div>
+            <div class="field">
+              <label for="taskStatus">Status</label>
+              <select id="taskStatus">
+                <option value="done">Done</option>
+                <option value="on-going">On-Going</option>
+                <option value="upcoming">Upcoming</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="taskStart">Start Date</label>
+              <input id="taskStart" type="date" />
+            </div>
+            <div class="field">
+              <label for="taskEnd">End Date</label>
+              <input id="taskEnd" type="date" />
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:6px;">
+            <label for="taskNotes">Notes / Description</label>
+            <textarea id="taskNotes"></textarea>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" type="button" id="saveTaskBtn">Save / Update Task</button>
+            <button class="btn btn-secondary" type="button" id="addTaskBtn">Add as New Task</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Tips</div>
+          <div style="font-size:11px; color:var(--text-muted);">
+            <ul style="padding-left:16px; margin-top:2px;">
+              <li>Headings and labels with a dashed underline are directly editable.</li>
+              <li>Use the Task Editor to update dates, owner, phase or status.</li>
+              <li>Refresh will reset the page (changes are not saved to GitHub automatically).</li>
+            </ul>
+          </div>
         </div>
       </aside>
     </div>
@@ -610,131 +518,197 @@
   </div>
 
   <script>
-    /*
-      ===============================
-      EDITABLE PROJECT DATA SECTION
-      ===============================
-      1) Change phases:   title / description / color
-      2) Change tasks:    title / owner / start / end / status / notes
-      3) Change timelineStart & timelineEnd if need bigger/smaller date range
+    /* ========= EDITABLE DATA ========= */
+    /* Flash Service – Option B Phases:
+       1) Requirement & Kickoff
+       2) Config & Routing
+       3) Integrations
+       4) Testing (SIT)
+       5) UAT
+       6) Go-Live & Hypercare
     */
 
     const phases = [
       {
-        id: "requirements",
-        title: "Requirement & Kick-off",
-        sub: "Scope freeze, timelines, environments, dependencies",
+        id: "kickoff",
+        title: "Requirement & Kickoff",
+        sub: "Scope freeze, timelines, use cases, dependencies",
         color: "var(--accent-1)",
       },
       {
-        id: "development",
-        title: "Development & Config",
-        sub: "Flash service configuration, integrations & scripting",
+        id: "config",
+        title: "Flash Config & Routing",
+        sub: "Environment readiness, service config, routing tables",
         color: "var(--accent-2)",
       },
       {
-        id: "testing",
-        title: "Testing & UAT",
-        sub: "SIT, UAT, performance and regression cycles",
+        id: "integration",
+        title: "Integrations (SDP / IVR / Charging)",
+        sub: "SDP, IVR, SMSC, charging & reporting integrations",
         color: "var(--accent-3)",
+      },
+      {
+        id: "sit",
+        title: "System Integration Testing (SIT)",
+        sub: "Core flows, negative scenarios, capacity & failover",
+        color: "var(--accent-1)",
+      },
+      {
+        id: "uat",
+        title: "User Acceptance Testing (UAT)",
+        sub: "Client test cases execution, defect fixing & sign-off",
+        color: "var(--accent-2)",
       },
       {
         id: "golive",
         title: "Go-Live & Hypercare",
-        sub: "Production cutover, monitoring and stabilization",
+        sub: "Cutover, production validation, monitoring & handover",
         color: "var(--accent-4)",
       },
     ];
 
     // status: "done" | "on-going" | "upcoming"
-    const tasks = [
+    let tasks = [
+      // 1) Requirement & Kickoff
       {
         id: 1,
-        phaseId: "requirements",
-        title: "Project Kick-off & High Level Scope",
+        phaseId: "kickoff",
+        title: "Project Kick-off & Scope Freeze",
         owner: "SR",
         start: "2024-11-01",
-        end: "2024-11-05",
+        end:   "2024-11-03",
         status: "done",
-        notes: "Kick-off call with client, freeze scope for Flash server changes and agree on timelines.",
+        notes:
+          "Kick-off meeting with client; agree on Flash scope, environments and high-level milestones.",
       },
       {
         id: 2,
-        phaseId: "requirements",
-        title: "Requirement Sign-off",
+        phaseId: "kickoff",
+        title: "Requirement Walkthrough & KT",
         owner: "PM",
-        start: "2024-11-04",
-        end: "2024-11-08",
+        start: "2024-11-02",
+        end:   "2024-11-06",
         status: "on-going",
-        notes: "Capture all service flows, charging rules and reporting expectations for Flash.",
+        notes:
+          "Detailed walkthrough of flows (MO/MT), charging rules, reporting, alarms and dependencies.",
       },
+
+      // 2) Flash Config & Routing
       {
         id: 3,
-        phaseId: "development",
-        title: "Flash Application Config & Routing",
+        phaseId: "config",
+        title: "Environment Readiness (UAT Flash)",
         owner: "RK",
-        start: "2024-11-09",
-        end: "2024-11-18",
+        start: "2024-11-04",
+        end:   "2024-11-08",
         status: "on-going",
-        notes: "Configure Flash service modules, routing tables and environment properties.",
+        notes:
+          "Validate UAT servers, connectivity, certificates, ports and base Flash installation.",
       },
       {
         id: 4,
-        phaseId: "development",
-        title: "Integration With SDP / IVR",
-        owner: "AB",
-        start: "2024-11-15",
-        end: "2024-11-24",
+        phaseId: "config",
+        title: "Flash Service Config & Routing Tables",
+        owner: "SR",
+        start: "2024-11-07",
+        end:   "2024-11-14",
         status: "upcoming",
-        notes: "Integrate Flash with SDP/IVR, ensure signaling & callback URLs are aligned.",
+        notes:
+          "Configure Flash applications, IN parameters, routing logic and failover rules as per design.",
       },
+
+      // 3) Integrations (SDP / IVR / Charging)
       {
         id: 5,
-        phaseId: "testing",
-        title: "SIT – Functional Test Cases",
-        owner: "SR",
-        start: "2024-11-20",
-        end: "2024-11-28",
+        phaseId: "integration",
+        title: "SDP / IVR Integration",
+        owner: "AB",
+        start: "2024-11-11",
+        end:   "2024-11-18",
         status: "upcoming",
-        notes: "Execute core functional test cases including success/failure flows and edge cases.",
+        notes:
+          "End-to-end signalling integration with SDP / IVR, callback URLs and header validations.",
       },
       {
         id: 6,
-        phaseId: "testing",
-        title: "Client UAT",
-        owner: "PM",
-        start: "2024-11-26",
-        end: "2024-12-05",
+        phaseId: "integration",
+        title: "Charging & Billing Validation",
+        owner: "RK",
+        start: "2024-11-15",
+        end:   "2024-11-20",
         status: "upcoming",
-        notes: "Support client UAT, capture defects, retest & sign-off for production cutover.",
+        notes:
+          "Validate charging IDs, rate plans, free/chargeable calls and CDR generation for Flash.",
       },
+
+      // 4) System Integration Testing (SIT)
       {
         id: 7,
-        phaseId: "golive",
-        title: "Production Cutover",
-        owner: "RK",
-        start: "2024-12-06",
-        end: "2024-12-08",
+        phaseId: "sit",
+        title: "SIT – Core Call Flows",
+        owner: "SR",
+        start: "2024-11-19",
+        end:   "2024-11-25",
         status: "upcoming",
-        notes: "Deploy Flash service on production, perform smoke tests and enable traffic.",
+        notes:
+          "Run core inbound/outbound Flash scenarios, success & error flows, happy path coverage.",
       },
       {
         id: 8,
+        phaseId: "sit",
+        title: "SIT – Negative & Load Scenarios",
+        owner: "AB",
+        start: "2024-11-23",
+        end:   "2024-11-28",
+        status: "upcoming",
+        notes:
+          "Negative, timeout, retry and basic load tests; ensure stability with multiple concurrent calls.",
+      },
+
+      // 5) UAT
+      {
+        id: 9,
+        phaseId: "uat",
+        title: "Client UAT Cycle",
+        owner: "PM",
+        start: "2024-11-26",
+        end:   "2024-12-05",
+        status: "upcoming",
+        notes:
+          "Client executes agreed UAT scenarios; track defects, re-deploy fixes and obtain UAT sign-off.",
+      },
+
+      // 6) Go-Live & Hypercare
+      {
+        id: 10,
         phaseId: "golive",
-        title: "Hypercare & Monitoring",
+        title: "Production Cutover & Sanity",
+        owner: "RK",
+        start: "2024-12-06",
+        end:   "2024-12-08",
+        status: "upcoming",
+        notes:
+          "Migrate configs to PROD, perform controlled cutover, run sanity calls and confirm KPIs.",
+      },
+      {
+        id: 11,
+        phaseId: "golive",
+        title: "Hypercare Monitoring & Handover",
         owner: "SR",
         start: "2024-12-09",
-        end: "2024-12-20",
+        end:   "2024-12-18",
         status: "upcoming",
-        notes: "Closely monitor KPIs, alerts and CDRs; fix any issues in coordination with client.",
+        notes:
+          "Monitor Flash KPIs, alarms and CDRs; daily status with client and final handover to operations.",
       },
     ];
 
-    // CHANGE THESE FOR TIMELINE RANGE
+    // timeline range
     const timelineStart = new Date("2024-11-01");
-    const timelineEnd = new Date("2024-12-20");
+    const timelineEnd   = new Date("2024-12-20");
 
-    // ========= UTILITIES =========
+    /* ========= GANTT RENDERING ========= */
+
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
     const totalDays = Math.round((timelineEnd - timelineStart) / MS_PER_DAY) + 1;
 
@@ -743,21 +717,26 @@
       return Math.round((d - timelineStart) / MS_PER_DAY);
     }
 
-    // ========= RENDER PHASES =========
     const phaseListEl = document.getElementById("phaseList");
-    phases.forEach((phase) => {
+    const headerRowEl = document.getElementById("timelineHeaderRow");
+    const gridEl = document.getElementById("timelineGrid");
+    const tooltipEl = document.getElementById("tooltip");
+    const detailsEl = document.getElementById("taskDetails");
+    const selectedStatusLabel = document.getElementById("selectedStatusLabel");
+
+    // phases left column
+    phases.forEach(phase => {
       const li = document.createElement("li");
       li.className = "phase-row";
       li.dataset.phaseId = phase.id;
       li.innerHTML = `
-        <div class="phase-title">${phase.title}</div>
-        <div class="phase-sub">${phase.sub}</div>
+        <div class="phase-title" contenteditable="true">${phase.title}</div>
+        <div class="phase-sub" contenteditable="true">${phase.sub}</div>
       `;
       phaseListEl.appendChild(li);
     });
 
-    // ========= RENDER HEADER DATES =========
-    const headerRowEl = document.getElementById("timelineHeaderRow");
+    // header dates
     for (let i = 0; i < totalDays; i++) {
       const date = new Date(timelineStart.getTime() + i * MS_PER_DAY);
       const day = date.getDate();
@@ -768,32 +747,32 @@
       headerRowEl.appendChild(cell);
     }
 
-    // ========= GRID ROWS =========
-    const gridEl = document.getElementById("timelineGrid");
-    phases.forEach((phase) => {
+    // grid rows
+    phases.forEach(phase => {
       const row = document.createElement("div");
       row.className = "timeline-grid-row";
       row.dataset.phaseId = phase.id;
       gridEl.appendChild(row);
     });
 
-    // ========= TASKS =========
-    function renderTasks(filterStatus = "all") {
-      document.querySelectorAll(".task-bar").forEach((el) => el.remove());
+    function clearTaskBars() {
+      document.querySelectorAll(".task-bar").forEach(el => el.remove());
+    }
 
-      tasks.forEach((task) => {
+    function renderTasks(filterStatus = "all") {
+      clearTaskBars();
+
+      tasks.forEach(task => {
         if (filterStatus !== "all" && task.status !== filterStatus) return;
 
-        const row = document.querySelector(
-          `.timeline-grid-row[data-phase-id="${task.phaseId}"]`
-        );
+        const row = document.querySelector(`.timeline-grid-row[data-phase-id="${task.phaseId}"]`);
         if (!row) return;
 
         const startIndex = dateToDayIndex(task.start);
-        const endIndex = dateToDayIndex(task.end);
+        const endIndex   = dateToDayIndex(task.end);
         const durationDays = endIndex - startIndex + 1;
 
-        const leftPercent = (startIndex / totalDays) * 100;
+        const leftPercent  = (startIndex / totalDays) * 100;
         const widthPercent = (durationDays / totalDays) * 100;
 
         const bar = document.createElement("div");
@@ -801,18 +780,15 @@
         bar.dataset.taskId = task.id;
         bar.dataset.status = task.status;
 
-        const phase = phases.find((p) => p.id === task.phaseId);
+        const phase = phases.find(p => p.id === task.phaseId);
         const bgColor = phase ? phase.color : "var(--accent-1)";
         bar.style.background = bgColor;
-        bar.style.left = leftPercent + "%";
+        bar.style.left  = leftPercent + "%";
         bar.style.width = widthPercent + "%";
 
         const statusLabel =
-          task.status === "done"
-            ? "Done"
-            : task.status === "on-going"
-            ? "On-Going"
-            : "Upcoming";
+          task.status === "done" ? "Done" :
+          task.status === "on-going" ? "On-Going" : "Upcoming";
 
         bar.innerHTML = `
           <span class="task-pill">${statusLabel}</span>
@@ -823,13 +799,13 @@
         row.appendChild(bar);
       });
 
-      wireTaskInteractions();
+      attachTaskEvents();
     }
 
-    // ========= TODAY LINE =========
     function renderTodayLine() {
       const today = new Date();
       if (today < timelineStart || today > timelineEnd) return;
+
       const index = Math.round((today - timelineStart) / MS_PER_DAY);
       const leftPercent = (index / totalDays) * 100;
 
@@ -842,36 +818,28 @@
       label.style.transform = "translate(-50%, -70%)";
     }
 
-    // ========= TOOLTIP & DETAILS =========
-    const tooltipEl = document.getElementById("tooltip");
-    const detailsEl = document.getElementById("taskDetails");
-    const selectedStatusLabel = document.getElementById("selectedStatusLabel");
-
     function moveTooltip(e) {
       const padding = 12;
       tooltipEl.style.left = e.clientX + padding + "px";
-      tooltipEl.style.top = e.clientY + padding + "px";
+      tooltipEl.style.top  = e.clientY + padding + "px";
     }
 
-    function wireTaskInteractions() {
-      document.querySelectorAll(".task-bar").forEach((bar) => {
+    function attachTaskEvents() {
+      document.querySelectorAll(".task-bar").forEach(bar => {
         const taskId = Number(bar.dataset.taskId);
-        const task = tasks.find((t) => t.id === taskId);
+        const task = tasks.find(t => t.id === taskId);
         if (!task) return;
-        const phase = phases.find((p) => p.id === task.phaseId);
-
+        const phase = phases.find(p => p.id === task.phaseId);
+        const phaseTitle = phase ? phase.title : "";
         const statusText =
-          task.status === "done"
-            ? "Done"
-            : task.status === "on-going"
-            ? "On-Going"
-            : "Upcoming";
+          task.status === "done" ? "Done" :
+          task.status === "on-going" ? "On-Going" : "Upcoming";
 
-        bar.addEventListener("mouseenter", (e) => {
+        bar.addEventListener("mouseenter", e => {
           tooltipEl.innerHTML = `
             <div class="tooltip-title">${task.title}</div>
             <div class="tooltip-line">
-              <span><strong>Phase:</strong> ${phase?.title ?? ""}</span>
+              <span><strong>Phase:</strong> ${phaseTitle}</span>
               <span><strong>Owner:</strong> ${task.owner}</span>
             </div>
             <div class="tooltip-line" style="margin-top:4px;">
@@ -885,46 +853,144 @@
         });
 
         bar.addEventListener("mousemove", moveTooltip);
-
-        bar.addEventListener("mouseleave", () => {
-          tooltipEl.classList.remove("visible");
-        });
+        bar.addEventListener("mouseleave", () => tooltipEl.classList.remove("visible"));
 
         bar.addEventListener("click", () => {
-          document
-            .querySelectorAll(".task-bar")
-            .forEach((el) => (el.style.outline = "none"));
+          document.querySelectorAll(".task-bar").forEach(b => (b.style.outline = "none"));
           bar.style.outline = "2px solid rgba(56, 189, 248, 0.85)";
-
-          selectedStatusLabel.textContent = statusText;
-          detailsEl.innerHTML = `
-            <p><strong>${task.title}</strong></p>
-            <p style="margin-top:4px;">${task.notes}</p>
-            <div class="pill-row">
-              <span class="info-pill">Phase: ${phase?.title ?? ""}</span>
-              <span class="info-pill">Owner: ${task.owner}</span>
-              <span class="info-pill">Start: ${task.start}</span>
-              <span class="info-pill">End: ${task.end}</span>
-              <span class="info-pill">Status: ${statusText}</span>
-            </div>
-          `;
+          fillEditorWithTask(taskId);
+          showTaskDetails(taskId);
         });
       });
     }
 
-    // ========= FILTER BUTTONS =========
-    document.querySelectorAll(".chip").forEach((chip) => {
+    function showTaskDetails(taskId) {
+      const task  = tasks.find(t => t.id === taskId);
+      if (!task) return;
+      const phase = phases.find(p => p.id === task.phaseId);
+      const phaseTitle = phase ? phase.title : "";
+      const statusText =
+        task.status === "done" ? "Done" :
+        task.status === "on-going" ? "On-Going" : "Upcoming";
+
+      selectedStatusLabel.textContent = statusText;
+      detailsEl.innerHTML = `
+        <p><strong>${task.title}</strong></p>
+        <p style="margin-top:4px;">${task.notes || ""}</p>
+        <div class="pill-row">
+          <span class="info-pill">Phase: ${phaseTitle}</span>
+          <span class="info-pill">Owner: ${task.owner}</span>
+          <span class="info-pill">Start: ${task.start}</span>
+          <span class="info-pill">End: ${task.end}</span>
+          <span class="info-pill">Status: ${statusText}</span>
+        </div>
+      `;
+    }
+
+    /* ========= FILTER BUTTONS ========= */
+
+    document.querySelectorAll(".chip").forEach(chip => {
       chip.addEventListener("click", () => {
         const filter = chip.dataset.filter;
-        document
-          .querySelectorAll(".chip")
-          .forEach((c) => c.classList.remove("chip--active"));
+        document.querySelectorAll(".chip").forEach(c => c.classList.remove("chip--active"));
         chip.classList.add("chip--active");
         renderTasks(filter);
       });
     });
 
-    // ========= INIT =========
+    /* ========= TASK EDITOR ========= */
+
+    const taskSelect = document.getElementById("taskSelect");
+    const phaseSelect = document.getElementById("taskPhase");
+    const titleInput = document.getElementById("taskTitle");
+    const ownerInput = document.getElementById("taskOwner");
+    const statusSelect = document.getElementById("taskStatus");
+    const startInput = document.getElementById("taskStart");
+    const endInput = document.getElementById("taskEnd");
+    const notesInput = document.getElementById("taskNotes");
+
+    function populatePhaseSelect() {
+      phaseSelect.innerHTML = "";
+      phases.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.title;
+        phaseSelect.appendChild(opt);
+      });
+    }
+
+    function populateTaskSelect() {
+      taskSelect.innerHTML = "";
+      tasks.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t.id;
+        opt.textContent = `${t.id}. ${t.title}`;
+        taskSelect.appendChild(opt);
+      });
+    }
+
+    function fillEditorWithTask(taskId) {
+      const task = tasks.find(t => t.id === Number(taskId));
+      if (!task) return;
+      taskSelect.value = task.id;
+      titleInput.value  = task.title;
+      ownerInput.value  = task.owner;
+      phaseSelect.value = task.phaseId;
+      statusSelect.value = task.status;
+      startInput.value = task.start;
+      endInput.value   = task.end;
+      notesInput.value = task.notes || "";
+    }
+
+    taskSelect.addEventListener("change", () => {
+      fillEditorWithTask(taskSelect.value);
+      showTaskDetails(Number(taskSelect.value));
+    });
+
+    document.getElementById("saveTaskBtn").addEventListener("click", () => {
+      const id = Number(taskSelect.value);
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      task.title  = titleInput.value.trim() || "Untitled Task";
+      task.owner  = ownerInput.value.trim() || "--";
+      task.phaseId = phaseSelect.value;
+      task.status  = statusSelect.value;
+      if (startInput.value) task.start = startInput.value;
+      if (endInput.value)   task.end   = endInput.value;
+      task.notes   = notesInput.value.trim();
+
+      populateTaskSelect();
+      renderTasks(document.querySelector(".chip--active").dataset.filter);
+      fillEditorWithTask(id);
+      showTaskDetails(id);
+    });
+
+    document.getElementById("addTaskBtn").addEventListener("click", () => {
+      const newId = tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+      const newTask = {
+        id: newId,
+        title: titleInput.value.trim() || "New Task",
+        owner: ownerInput.value.trim() || "--",
+        phaseId: phaseSelect.value,
+        status: statusSelect.value,
+        start: startInput.value || new Date().toISOString().slice(0,10),
+        end:   endInput.value   || new Date().toISOString().slice(0,10),
+        notes: notesInput.value.trim(),
+      };
+      tasks.push(newTask);
+      populateTaskSelect();
+      renderTasks(document.querySelector(".chip--active").dataset.filter);
+      fillEditorWithTask(newId);
+      showTaskDetails(newId);
+    });
+
+    /* ========= INIT ========= */
+
+    populatePhaseSelect();
+    populateTaskSelect();
+    fillEditorWithTask(tasks[0].id);
+    showTaskDetails(tasks[0].id);
     renderTasks("all");
     renderTodayLine();
   </script>
