@@ -47,7 +47,6 @@
       overflow: hidden;
     }
 
-    /* top bar */
     .topbar {
       display: flex;
       justify-content: space-between;
@@ -60,7 +59,6 @@
     }
     .topbar small { font-size: 11px; opacity: 0.9; }
 
-    /* layout */
     .main-layout {
       display: grid;
       grid-template-columns: minmax(0, 2.1fr) minmax(270px, 0.9fr);
@@ -74,7 +72,6 @@
       .right { padding-top: 0; }
     }
 
-    /* editable text marker */
     [contenteditable="true"] {
       border-bottom: 1px dashed rgba(148, 163, 184, 0.6);
       padding-bottom: 2px;
@@ -119,7 +116,6 @@
     .chip--active { background: #4f46e5; color: #e5e7eb; border-color: transparent; }
     .chip--active .chip-dot { background: #e5e7eb !important; }
 
-    /* gantt */
     .gantt-shell {
       border-radius: var(--radius-lg);
       border: 1px solid var(--border);
@@ -243,6 +239,7 @@
       font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.12em;
+      cursor: grab; /* so it visually looks draggable */
     }
     .task-avatar {
       width: 18px; height: 18px;
@@ -278,7 +275,6 @@
     .tooltip-title { font-weight: 600; margin-bottom: 4px; color: #f9fafb; }
     .tooltip-line { display: flex; justify-content: space-between; gap: 12px; }
 
-    /* right panels */
     .panel {
       background: rgba(255, 255, 255, 0.94);
       border-radius: var(--radius-lg);
@@ -328,7 +324,6 @@
       background: #f9fafb;
     }
 
-    /* Task editor form */
     .form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -377,7 +372,6 @@
     .btn-primary { background: #4f46e5; color: #f9fafb; }
     .btn-secondary { background: #e5e7eb; color: #111827; }
 
-    /* draggable status stickers */
     .sticker-row {
       display: flex;
       gap: 8px;
@@ -428,7 +422,7 @@
           <div class="title-row">
             <h1 contenteditable="true">Implementation Gantt – Flash Service</h1>
             <span contenteditable="true">
-              Click a task bar or drag a status sticker onto it. You can also edit via the Task Editor.
+              Click a task bar or drag a status sticker or pill onto it. You can also edit via the Task Editor.
             </span>
           </div>
 
@@ -562,7 +556,7 @@
           <div class="panel-title">Tips</div>
           <div style="font-size:11px; color:var(--text-muted);">
             <ul style="padding-left:16px; margin-top:2px;">
-              <li>Drag a status sticker (Done / On-Going / Upcoming) onto a bar to change its status.</li>
+              <li>You can drag a status sticker <em>or</em> the status pill on a bar to change its state.</li>
               <li>Headings and phase descriptions can be edited by typing.</li>
               <li>Task Editor lets you adjust dates, owner, phase and notes.</li>
             </ul>
@@ -576,14 +570,6 @@
 
   <script>
     /* ========= EDITABLE DATA ========= */
-    /* Flash Service – Option B Phases:
-       1) Requirement & Kickoff
-       2) Config & Routing
-       3) Integrations
-       4) Testing (SIT)
-       5) UAT
-       6) Go-Live & Hypercare
-    */
 
     const phases = [
       {
@@ -624,9 +610,7 @@
       },
     ];
 
-    // status: "done" | "on-going" | "upcoming"
     let tasks = [
-      // 1) Requirement & Kickoff
       {
         id: 1,
         phaseId: "kickoff",
@@ -649,8 +633,6 @@
         notes:
           "Detailed walkthrough of flows (MO/MT), charging rules, reporting, alarms and dependencies.",
       },
-
-      // 2) Flash Config & Routing
       {
         id: 3,
         phaseId: "config",
@@ -673,8 +655,6 @@
         notes:
           "Configure Flash applications, IN parameters, routing logic and failover rules as per design.",
       },
-
-      // 3) Integrations (SDP / IVR / Charging)
       {
         id: 5,
         phaseId: "integration",
@@ -697,8 +677,6 @@
         notes:
           "Validate charging IDs, rate plans, free/chargeable calls and CDR generation for Flash.",
       },
-
-      // 4) System Integration Testing (SIT)
       {
         id: 7,
         phaseId: "sit",
@@ -721,8 +699,6 @@
         notes:
           "Negative, timeout, retry and basic load tests; ensure stability with multiple concurrent calls.",
       },
-
-      // 5) UAT
       {
         id: 9,
         phaseId: "uat",
@@ -734,8 +710,6 @@
         notes:
           "Client executes agreed UAT scenarios; track defects, re-deploy fixes and obtain UAT sign-off.",
       },
-
-      // 6) Go-Live & Hypercare
       {
         id: 10,
         phaseId: "golive",
@@ -760,11 +734,8 @@
       },
     ];
 
-    // timeline range
     const timelineStart = new Date("2024-11-01");
     const timelineEnd   = new Date("2024-12-20");
-
-    /* ========= GANTT RENDERING ========= */
 
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
     const totalDays = Math.round((timelineEnd - timelineStart) / MS_PER_DAY) + 1;
@@ -781,7 +752,6 @@
     const detailsEl = document.getElementById("taskDetails");
     const selectedStatusLabel = document.getElementById("selectedStatusLabel");
 
-    // phases left column
     phases.forEach(phase => {
       const li = document.createElement("li");
       li.className = "phase-row";
@@ -793,7 +763,6 @@
       phaseListEl.appendChild(li);
     });
 
-    // header dates
     for (let i = 0; i < totalDays; i++) {
       const date = new Date(timelineStart.getTime() + i * MS_PER_DAY);
       const day = date.getDate();
@@ -804,7 +773,6 @@
       headerRowEl.appendChild(cell);
     }
 
-    // grid rows
     phases.forEach(phase => {
       const row = document.createElement("div");
       row.className = "timeline-grid-row";
@@ -915,7 +883,6 @@
           task.status === "done" ? "Done" :
           task.status === "on-going" ? "On-Going" : "Upcoming";
 
-        // tooltip
         bar.addEventListener("mouseenter", e => {
           tooltipEl.innerHTML = `
             <div class="tooltip-title">${task.title}</div>
@@ -936,7 +903,6 @@
         bar.addEventListener("mousemove", moveTooltip);
         bar.addEventListener("mouseleave", () => tooltipEl.classList.remove("visible"));
 
-        // click = select into editor
         bar.addEventListener("click", () => {
           document.querySelectorAll(".task-bar").forEach(b => (b.style.outline = "none"));
           bar.style.outline = "2px solid rgba(56, 189, 248, 0.85)";
@@ -944,7 +910,7 @@
           showTaskDetails(taskId);
         });
 
-        // drag-drop: allow sticker drop
+        // drag/drop target for status
         bar.addEventListener("dragover", e => {
           e.preventDefault();
           bar.classList.add("drag-over");
@@ -957,18 +923,25 @@
           bar.classList.remove("drag-over");
           const newStatus = e.dataTransfer.getData("text/status");
           if (!newStatus) return;
-          // update task status
           task.status = newStatus;
-          // keep other fields same, re-render
           populateTaskSelect();
           renderTasks(document.querySelector(".chip--active").dataset.filter);
           fillEditorWithTask(taskId);
           showTaskDetails(taskId);
         });
+
+        // NEW: make the pill itself draggable as a status "sticker"
+        const pill = bar.querySelector(".task-pill");
+        if (pill) {
+          pill.setAttribute("draggable", "true");
+          pill.addEventListener("dragstart", e => {
+            // don't trigger bar drag logic
+            e.stopPropagation();
+            e.dataTransfer.setData("text/status", task.status);
+          });
+        }
       });
     }
-
-    /* ========= FILTER BUTTONS ========= */
 
     document.querySelectorAll(".chip").forEach(chip => {
       chip.addEventListener("click", () => {
@@ -979,15 +952,11 @@
       });
     });
 
-    /* ========= STATUS STICKER DRAG ========= */
-
     document.querySelectorAll(".status-sticker").forEach(sticker => {
       sticker.addEventListener("dragstart", e => {
         e.dataTransfer.setData("text/status", sticker.dataset.status);
       });
     });
-
-    /* ========= TASK EDITOR ========= */
 
     const taskSelect = document.getElementById("taskSelect");
     const phaseSelect = document.getElementById("taskPhase");
@@ -1073,8 +1042,6 @@
       fillEditorWithTask(newId);
       showTaskDetails(newId);
     });
-
-    /* ========= INIT ========= */
 
     populatePhaseSelect();
     populateTaskSelect();
