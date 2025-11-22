@@ -179,28 +179,6 @@
       position: relative;
     }
 
-    .today-line {
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 2px;
-      background: var(--accent-danger);
-      box-shadow: 0 0 0 1px rgba(248,113,113,0.45);
-      pointer-events: none;
-    }
-    .today-label {
-      position: absolute;
-      top: 2px;
-      transform: translateX(-50%);
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: #fee2e2;
-      color: #b91c1c;
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      white-space: nowrap;
-    }
-
     .task-bar {
       position: absolute;
       top: 50%;
@@ -219,6 +197,7 @@
       text-overflow: ellipsis;
       box-shadow: 0 10px 20px rgba(15,23,42,0.25);
       transition: box-shadow 0.12s ease, opacity 0.12s ease;
+      touch-action: none;
     }
     .task-bar:active { cursor: grabbing; }
     .task-bar[data-status="done"]     { opacity: 0.95; }
@@ -250,7 +229,6 @@
     }
     .task-title { font-weight: 600; }
 
-    /* resize handles */
     .resize-handle {
       width: 6px;
       height: 70%;
@@ -383,7 +361,7 @@
   <div class="page">
     <div class="topbar">
       <div contenteditable="true">Flash Service Project Plan</div>
-      <small contenteditable="true">Year: 2025 &nbsp;•&nbsp; Month: November</small>
+      <small>Year: 2025 &nbsp;•&nbsp; Month: November</small>
     </div>
 
     <div class="main-layout">
@@ -392,9 +370,7 @@
         <div class="header-block">
           <div class="title-row">
             <h1 contenteditable="true">Implementation Gantt – Flash Service</h1>
-            <span contenteditable="true">
-              Drag bars left / right to change dates. Drag edges to change duration.
-            </span>
+            <span>Drag bars left / right to change dates. Drag edges to change duration.</span>
           </div>
 
           <div class="filters">
@@ -424,10 +400,6 @@
                 <div class="timeline-header-row" id="timelineHeaderRow"></div>
               </div>
               <div class="timeline-grid" id="timelineGrid"></div>
-
-              <div id="todayLine" class="today-line" style="display:none;">
-                <div class="today-label">Today</div>
-              </div>
             </div>
           </section>
         </div>
@@ -510,17 +482,6 @@
             <button class="btn btn-secondary" type="button" id="addTaskBtn">Add as New Task</button>
           </div>
         </div>
-
-        <div class="panel">
-          <div class="panel-title">Tips</div>
-          <div style="font-size:11px; color:var(--text-muted);">
-            <ul style="padding-left:16px; margin-top:2px;">
-              <li>Drag a whole bar to move the task along November 2025.</li>
-              <li>Drag the white handle at the left/right edge to change duration.</li>
-              <li>Task dates are always kept within November 2025.</li>
-            </ul>
-          </div>
-        </div>
       </aside>
     </div>
 
@@ -528,7 +489,10 @@
   </div>
 
   <script>
-    /* ======== DATA (Nov 2025) ======== */
+    // === CONFIG: November 2025 ===
+    const YEAR = 2025;
+    const MONTH_INDEX = 10; // 0 = Jan, 10 = Nov
+    const TOTAL_DAYS = 30;  // 1..30
 
     const phases = [
       {
@@ -569,146 +533,47 @@
       },
     ];
 
+    // Data stored in days (1..30) – we compute dates when needed
     let tasks = [
-      {
-        id: 1,
-        phaseId: "kickoff",
-        title: "Project Kick-off & Scope Freeze",
-        owner: "SR",
-        start: "2025-11-01",
-        end:   "2025-11-03",
-        status: "done",
-        notes:
-          "Kick-off meeting with client; agree on Flash scope, environments and high-level milestones.",
-      },
-      {
-        id: 2,
-        phaseId: "kickoff",
-        title: "Requirement Walkthrough & KT",
-        owner: "PM",
-        start: "2025-11-02",
-        end:   "2025-11-06",
-        status: "on-going",
-        notes:
-          "Detailed walkthrough of flows (MO/MT), charging rules, reporting, alarms and dependencies.",
-      },
-      {
-        id: 3,
-        phaseId: "config",
-        title: "Environment Readiness (UAT Flash)",
-        owner: "RK",
-        start: "2025-11-04",
-        end:   "2025-11-08",
-        status: "on-going",
-        notes:
-          "Validate UAT servers, connectivity, certificates, ports and base Flash installation.",
-      },
-      {
-        id: 4,
-        phaseId: "config",
-        title: "Flash Service Config & Routing Tables",
-        owner: "SR",
-        start: "2025-11-07",
-        end:   "2025-11-14",
-        status: "upcoming",
-        notes:
-          "Configure Flash applications, IN parameters, routing logic and failover rules as per design.",
-      },
-      {
-        id: 5,
-        phaseId: "integration",
-        title: "SDP / IVR Integration",
-        owner: "AB",
-        start: "2025-11-11",
-        end:   "2025-11-18",
-        status: "upcoming",
-        notes:
-          "End-to-end signalling integration with SDP / IVR, callback URLs and header validations.",
-      },
-      {
-        id: 6,
-        phaseId: "integration",
-        title: "Charging & Billing Validation",
-        owner: "RK",
-        start: "2025-11-15",
-        end:   "2025-11-20",
-        status: "upcoming",
-        notes:
-          "Validate charging IDs, rate plans, free/chargeable calls and CDR generation for Flash.",
-      },
-      {
-        id: 7,
-        phaseId: "sit",
-        title: "SIT – Core Call Flows",
-        owner: "SR",
-        start: "2025-11-19",
-        end:   "2025-11-23",
-        status: "upcoming",
-        notes:
-          "Run core inbound/outbound Flash scenarios, success & error flows, happy path coverage.",
-      },
-      {
-        id: 8,
-        phaseId: "sit",
-        title: "SIT – Negative & Load Scenarios",
-        owner: "AB",
-        start: "2025-11-22",
-        end:   "2025-11-28",
-        status: "upcoming",
-        notes:
-          "Negative, timeout, retry and basic load tests; ensure stability with multiple concurrent calls.",
-      },
-      {
-        id: 9,
-        phaseId: "uat",
-        title: "Client UAT Cycle",
-        owner: "PM",
-        start: "2025-11-24",
-        end:   "2025-11-30",
-        status: "upcoming",
-        notes:
-          "Client executes agreed UAT scenarios; track defects, re-deploy fixes and obtain UAT sign-off.",
-      },
-      {
-        id: 10,
-        phaseId: "golive",
-        title: "Production Cutover & Sanity",
-        owner: "RK",
-        start: "2025-11-26",
-        end:   "2025-11-28",
-        status: "upcoming",
-        notes:
-          "Migrate configs to PROD, perform controlled cutover, run sanity calls and confirm KPIs.",
-      },
-      {
-        id: 11,
-        phaseId: "golive",
-        title: "Hypercare Monitoring & Handover",
-        owner: "SR",
-        start: "2025-11-29",
-        end:   "2025-11-30",
-        status: "upcoming",
-        notes:
-          "Monitor Flash KPIs, alarms and CDRs; daily status with client and final handover to operations.",
-      },
+      { id: 1,  phaseId: "kickoff",    title: "Project Kick-off & Scope Freeze",  owner: "SR", status: "done",      startDay: 1,  endDay: 3,
+        notes: "Kick-off meeting with client; agree on Flash scope, environments and milestones." },
+      { id: 2,  phaseId: "kickoff",    title: "Requirement Walkthrough & KT",    owner: "PM", status: "on-going",  startDay: 2,  endDay: 6,
+        notes: "Detailed walkthrough of flows, charging rules, reporting and alarms." },
+      { id: 3,  phaseId: "config",     title: "Environment Readiness (UAT Flash)", owner: "RK", status: "on-going", startDay: 4,  endDay: 8,
+        notes: "Validate UAT servers, connectivity, certificates, ports and installation." },
+      { id: 4,  phaseId: "config",     title: "Flash Service Config & Routing",  owner: "SR", status: "upcoming",  startDay: 7,  endDay: 14,
+        notes: "Configure Flash applications, IN parameters, routing and failover." },
+      { id: 5,  phaseId: "integration",title: "SDP / IVR Integration",           owner: "AB", status: "upcoming",  startDay: 11, endDay: 18,
+        notes: "Signalling integration with SDP/IVR, callback URLs and validations." },
+      { id: 6,  phaseId: "integration",title: "Charging & Billing Validation",   owner: "RK", status: "upcoming",  startDay: 15, endDay: 20,
+        notes: "Validate rate plans, free/chargeable calls and CDR generation." },
+      { id: 7,  phaseId: "sit",        title: "SIT – Core Call Flows",           owner: "SR", status: "upcoming",  startDay: 19, endDay: 23,
+        notes: "Run core inbound/outbound Flash scenarios and happy paths." },
+      { id: 8,  phaseId: "sit",        title: "SIT – Negative & Load",           owner: "AB", status: "upcoming",  startDay: 22, endDay: 28,
+        notes: "Negative, timeout, retry and basic load tests." },
+      { id: 9,  phaseId: "uat",        title: "Client UAT Cycle",                owner: "PM", status: "upcoming",  startDay: 24, endDay: 30,
+        notes: "Client executes UAT scenarios; track defects and obtain sign-off." },
+      { id: 10, phaseId: "golive",     title: "Production Cutover & Sanity",     owner: "RK", status: "upcoming",  startDay: 26, endDay: 28,
+        notes: "Cutover to PROD and sanity checks." },
+      { id: 11, phaseId: "golive",     title: "Hypercare & Handover",            owner: "SR", status: "upcoming",  startDay: 29, endDay: 30,
+        notes: "Monitor KPIs and handover to operations." },
     ];
 
-    const timelineStart = new Date("2025-11-01");
-    const timelineEnd   = new Date("2025-11-30");
-
-    const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    const totalDays = Math.round((timelineEnd - timelineStart) / MS_PER_DAY) + 1;
-
-    function dateToDayIndex(dateStr) {
-      const d = new Date(dateStr);
-      return Math.round((d - timelineStart) / MS_PER_DAY);
-    }
-    function indexToDate(index) {
-      const d = new Date(timelineStart.getTime() + index * MS_PER_DAY);
+    // Helpers to convert between day and date string
+    function dayToDateStr(day) {
+      const d = new Date(YEAR, MONTH_INDEX, day);
       const yyyy = d.getFullYear();
-      const mm = String(d.getMonth()+1).padStart(2,"0");
-      const dd = String(d.getDate()).padStart(2,"0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
       return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function dateStrToDay(str) {
+      if (!str) return null;
+      const d = new Date(str);
+      if (isNaN(d)) return null;
+      if (d.getFullYear() !== YEAR || d.getMonth() !== MONTH_INDEX) return null;
+      return d.getDate();
     }
 
     const phaseListEl = document.getElementById("phaseList");
@@ -718,7 +583,7 @@
     const detailsEl = document.getElementById("taskDetails");
     const selectedStatusLabel = document.getElementById("selectedStatusLabel");
 
-    // build phase column
+    // Build phase list
     phases.forEach(phase => {
       const li = document.createElement("li");
       li.className = "phase-row";
@@ -730,18 +595,17 @@
       phaseListEl.appendChild(li);
     });
 
-    // header dates
-    for (let i = 0; i < totalDays; i++) {
-      const date = new Date(timelineStart.getTime() + i * MS_PER_DAY);
-      const day = date.getDate();
-      const short = date.toLocaleDateString("en-GB", { weekday: "short" });
+    // Build date header
+    for (let day = 1; day <= TOTAL_DAYS; day++) {
+      const d = new Date(YEAR, MONTH_INDEX, day);
+      const short = d.toLocaleDateString("en-GB", { weekday: "short" });
       const cell = document.createElement("div");
       cell.className = "timeline-day";
       cell.innerHTML = `<div>${day}</div><div style="font-size:9px;">${short}</div>`;
       headerRowEl.appendChild(cell);
     }
 
-    // grid rows
+    // Build empty grid rows
     phases.forEach(phase => {
       const row = document.createElement("div");
       row.className = "timeline-grid-row";
@@ -749,42 +613,10 @@
       gridEl.appendChild(row);
     });
 
-    /* ====== TOOLTIP ====== */
-    function moveTooltip(e) {
-      const padding = 12;
-      tooltipEl.style.left = e.clientX + padding + "px";
-      tooltipEl.style.top  = e.clientY + padding + "px";
-    }
-
-    function showTaskDetails(taskId) {
-      const task  = tasks.find(t => t.id === taskId);
-      if (!task) return;
-      const phase = phases.find(p => p.id === task.phaseId);
-      const phaseTitle = phase ? phase.title : "";
-      const statusText =
-        task.status === "done" ? "Done" :
-        task.status === "on-going" ? "On-Going" : "Upcoming";
-
-      selectedStatusLabel.textContent = statusText;
-      detailsEl.innerHTML = `
-        <p><strong>${task.title}</strong></p>
-        <p style="margin-top:4px;">${task.notes || ""}</p>
-        <div class="pill-row">
-          <span class="info-pill">Phase: ${phaseTitle}</span>
-          <span class="info-pill">Owner: ${task.owner}</span>
-          <span class="info-pill">Start: ${task.start}</span>
-          <span class="info-pill">End: ${task.end}</span>
-          <span class="info-pill">Status: ${statusText}</span>
-        </div>
-      `;
-    }
-
-    /* ====== RENDER TASKS & DRAG / RESIZE ====== */
-
-    function positionBar(bar, startIndex, endIndex) {
-      const leftPercent  = (startIndex / totalDays) * 100;
-      const widthPercent = ((endIndex - startIndex + 1) / totalDays) * 100;
-      bar.style.left  = leftPercent + "%";
+    function positionBar(bar, startDay, endDay) {
+      const leftPercent = (startDay - 1) / TOTAL_DAYS * 100;
+      const widthPercent = (endDay - startDay + 1) / TOTAL_DAYS * 100;
+      bar.style.left = leftPercent + "%";
       bar.style.width = widthPercent + "%";
     }
 
@@ -797,12 +629,8 @@
 
       tasks.forEach(task => {
         if (filterStatus !== "all" && task.status !== filterStatus) return;
-
         const row = document.querySelector(`.timeline-grid-row[data-phase-id="${task.phaseId}"]`);
         if (!row) return;
-
-        const startIndex = dateToDayIndex(task.start);
-        const endIndex   = dateToDayIndex(task.end);
 
         const bar = document.createElement("div");
         bar.className = "task-bar";
@@ -810,8 +638,7 @@
         bar.dataset.status = task.status;
 
         const phase = phases.find(p => p.id === task.phaseId);
-        const bgColor = phase ? phase.color : "var(--accent-1)";
-        bar.style.background = bgColor;
+        bar.style.background = phase ? phase.color : "var(--accent-1)";
 
         const statusLabel =
           task.status === "done" ? "Done" :
@@ -826,13 +653,41 @@
         `;
 
         row.appendChild(bar);
-        positionBar(bar, startIndex, endIndex);
+        positionBar(bar, task.startDay, task.endDay);
       });
 
       attachTaskEvents();
     }
 
-    // drag state
+    function moveTooltip(e) {
+      const padding = 12;
+      tooltipEl.style.left = e.clientX + padding + "px";
+      tooltipEl.style.top  = e.clientY + padding + "px";
+    }
+
+    function showTaskDetails(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+      const phase = phases.find(p => p.id === task.phaseId);
+      const phaseTitle = phase ? phase.title : "";
+      const statusText =
+        task.status === "done" ? "Done" :
+        task.status === "on-going" ? "On-Going" : "Upcoming";
+
+      selectedStatusLabel.textContent = statusText;
+      detailsEl.innerHTML = `
+        <p><strong>${task.title}</strong></p>
+        <p style="margin-top:4px;">${task.notes || ""}</p>
+        <div class="pill-row">
+          <span class="info-pill">Phase: ${phaseTitle}</span>
+          <span class="info-pill">Owner: ${task.owner}</span>
+          <span class="info-pill">Start: ${dayToDateStr(task.startDay)}</span>
+          <span class="info-pill">End: ${dayToDateStr(task.endDay)}</span>
+          <span class="info-pill">Status: ${statusText}</span>
+        </div>
+      `;
+    }
+
     let dragState = null;
 
     function attachTaskEvents() {
@@ -847,7 +702,7 @@
           task.status === "on-going" ? "On-Going" : "Upcoming";
 
         // tooltip
-        bar.addEventListener("mouseenter", e => {
+        bar.onmouseenter = e => {
           tooltipEl.innerHTML = `
             <div class="tooltip-title">${task.title}</div>
             <div class="tooltip-line">
@@ -855,35 +710,31 @@
               <span><strong>Owner:</strong> ${task.owner}</span>
             </div>
             <div class="tooltip-line" style="margin-top:4px;">
-              <span><strong>Start:</strong> ${task.start}</span>
-              <span><strong>End:</strong> ${task.end}</span>
+              <span><strong>Start:</strong> ${dayToDateStr(task.startDay)}</span>
+              <span><strong>End:</strong> ${dayToDateStr(task.endDay)}</span>
             </div>
             <div style="margin-top:4px;"><strong>Status:</strong> ${statusText}</div>
           `;
           tooltipEl.classList.add("visible");
           moveTooltip(e);
-        });
-        bar.addEventListener("mousemove", moveTooltip);
-        bar.addEventListener("mouseleave", () => tooltipEl.classList.remove("visible"));
+        };
+        bar.onmousemove = moveTooltip;
+        bar.onmouseleave = () => tooltipEl.classList.remove("visible");
 
-        bar.addEventListener("click", () => {
-          document.querySelectorAll(".task-bar").forEach(b => (b.style.outline = "none"));
+        bar.onclick = () => {
+          document.querySelectorAll(".task-bar").forEach(b => b.style.outline = "none");
           bar.style.outline = "2px solid rgba(56,189,248,0.85)";
           fillEditorWithTask(taskId);
           showTaskDetails(taskId);
-        });
+        };
 
-        // pointer down for drag / resize
-        bar.addEventListener("pointerdown", e => {
-          if (e.button !== 0) return; // left button only
+        bar.onpointerdown = e => {
+          if (e.button !== 0) return;
           e.preventDefault();
 
           const row = bar.parentElement;
           const rowRect = row.getBoundingClientRect();
-          const dayWidth = rowRect.width / totalDays;
-
-          const startIndex = dateToDayIndex(task.start);
-          const endIndex   = dateToDayIndex(task.end);
+          const dayWidth = rowRect.width / TOTAL_DAYS;
 
           let mode = "move";
           if (e.target.classList.contains("resize-left")) mode = "resize-left";
@@ -892,118 +743,82 @@
           dragState = {
             mode,
             taskId,
-            startIndex,
-            endIndex,
+            startDay: task.startDay,
+            endDay: task.endDay,
             startX: e.clientX,
             dayWidth
           };
 
+          bar.setPointerCapture(e.pointerId);
           bar.classList.add("drag-highlight");
-          window.addEventListener("pointermove", onPointerMove);
-          window.addEventListener("pointerup", onPointerUp, { once: true });
-        });
+        };
+
+        bar.onpointermove = e => {
+          if (!dragState || dragState.taskId !== taskId) return;
+          const dx = e.clientX - dragState.startX;
+          const deltaDays = Math.round(dx / dragState.dayWidth);
+          let newStart = dragState.startDay;
+          let newEnd   = dragState.endDay;
+
+          if (dragState.mode === "move") {
+            const duration = dragState.endDay - dragState.startDay;
+            newStart = dragState.startDay + deltaDays;
+            newEnd   = newStart + duration;
+            if (newStart < 1) { newStart = 1; newEnd = newStart + duration; }
+            if (newEnd > TOTAL_DAYS) { newEnd = TOTAL_DAYS; newStart = newEnd - duration; }
+          } else if (dragState.mode === "resize-left") {
+            newStart = dragState.startDay + deltaDays;
+            if (newStart < 1) newStart = 1;
+            if (newStart >= newEnd) newStart = newEnd - 1;
+          } else if (dragState.mode === "resize-right") {
+            newEnd = dragState.endDay + deltaDays;
+            if (newEnd > TOTAL_DAYS) newEnd = TOTAL_DAYS;
+            if (newEnd <= newStart) newEnd = newStart + 1;
+          }
+
+          positionBar(bar, newStart, newEnd);
+        };
+
+        bar.onpointerup = e => {
+          if (!dragState || dragState.taskId !== taskId) return;
+          const dx = e.clientX - dragState.startX;
+          const deltaDays = Math.round(dx / dragState.dayWidth);
+
+          let newStart = dragState.startDay;
+          let newEnd   = dragState.endDay;
+
+          if (dragState.mode === "move") {
+            const duration = dragState.endDay - dragState.startDay;
+            newStart = dragState.startDay + deltaDays;
+            newEnd   = newStart + duration;
+            if (newStart < 1) { newStart = 1; newEnd = newStart + duration; }
+            if (newEnd > TOTAL_DAYS) { newEnd = TOTAL_DAYS; newStart = newEnd - duration; }
+          } else if (dragState.mode === "resize-left") {
+            newStart = dragState.startDay + deltaDays;
+            if (newStart < 1) newStart = 1;
+            if (newStart >= newEnd) newStart = newEnd - 1;
+          } else if (dragState.mode === "resize-right") {
+            newEnd = dragState.endDay + deltaDays;
+            if (newEnd > TOTAL_DAYS) newEnd = TOTAL_DAYS;
+            if (newEnd <= newStart) newEnd = newStart + 1;
+          }
+
+          task.startDay = newStart;
+          task.endDay   = newEnd;
+
+          bar.releasePointerCapture(e.pointerId);
+          bar.classList.remove("drag-highlight");
+          dragState = null;
+
+          populateTaskSelect();
+          renderTasks(document.querySelector(".chip--active").dataset.filter);
+          fillEditorWithTask(taskId);
+          showTaskDetails(taskId);
+        };
       });
     }
 
-    function onPointerMove(e) {
-      if (!dragState) return;
-      const { mode, taskId, startIndex, endIndex, startX, dayWidth } = dragState;
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      const dx = e.clientX - startX;
-      const deltaDays = Math.round(dx / dayWidth);
-
-      let newStart = startIndex;
-      let newEnd   = endIndex;
-
-      if (mode === "move") {
-        newStart = startIndex + deltaDays;
-        newEnd   = endIndex + deltaDays;
-        const duration = endIndex - startIndex;
-        if (newStart < 0) {
-          newStart = 0;
-          newEnd = duration;
-        }
-        if (newEnd > totalDays - 1) {
-          newEnd = totalDays - 1;
-          newStart = newEnd - duration;
-        }
-      } else if (mode === "resize-left") {
-        newStart = startIndex + deltaDays;
-        if (newStart < 0) newStart = 0;
-        if (newStart >= newEnd) newStart = newEnd - 1;
-      } else if (mode === "resize-right") {
-        newEnd = endIndex + deltaDays;
-        if (newEnd > totalDays - 1) newEnd = totalDays - 1;
-        if (newEnd <= newStart) newEnd = newStart + 1;
-      }
-
-      // live update bar position
-      const bar = document.querySelector(`.task-bar[data-task-id="${taskId}"]`);
-      if (bar) positionBar(bar, newStart, newEnd);
-    }
-
-    function onPointerUp(e) {
-      if (!dragState) { return; }
-      const { mode, taskId, startIndex, endIndex, startX, dayWidth } = dragState;
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) { dragState = null; return; }
-
-      const dx = e.clientX - startX;
-      const deltaDays = Math.round(dx / dayWidth);
-
-      let newStart = startIndex;
-      let newEnd   = endIndex;
-
-      if (mode === "move") {
-        newStart = startIndex + deltaDays;
-        newEnd   = endIndex + deltaDays;
-        const duration = endIndex - startIndex;
-        if (newStart < 0) { newStart = 0; newEnd = duration; }
-        if (newEnd > totalDays - 1) { newEnd = totalDays - 1; newStart = newEnd - duration; }
-      } else if (mode === "resize-left") {
-        newStart = startIndex + deltaDays;
-        if (newStart < 0) newStart = 0;
-        if (newStart >= newEnd) newStart = newEnd - 1;
-      } else if (mode === "resize-right") {
-        newEnd = endIndex + deltaDays;
-        if (newEnd > totalDays - 1) newEnd = totalDays - 1;
-        if (newEnd <= newStart) newEnd = newStart + 1;
-      }
-
-      task.start = indexToDate(newStart);
-      task.end   = indexToDate(newEnd);
-
-      document.querySelectorAll(".task-bar").forEach(b => b.classList.remove("drag-highlight"));
-      dragState = null;
-
-      window.removeEventListener("pointermove", onPointerMove);
-
-      // re-render so labels & detail panel stay in sync
-      populateTaskSelect();
-      renderTasks(document.querySelector(".chip--active").dataset.filter);
-      fillEditorWithTask(taskId);
-      showTaskDetails(taskId);
-    }
-
-    /* ====== TODAY LINE (optional) ====== */
-
-    function renderTodayLine() {
-      const today = new Date();
-      if (today < timelineStart || today > timelineEnd) return;
-      const index = Math.round((today - timelineStart) / MS_PER_DAY);
-      const leftPercent = (index / totalDays) * 100;
-      const todayLine = document.getElementById("todayLine");
-      todayLine.style.display = "block";
-      todayLine.style.left = leftPercent + "%";
-      const label = todayLine.querySelector(".today-label");
-      label.style.left = "0";
-      label.style.transform = "translate(-50%, -70%)";
-    }
-
-    /* ====== FILTERS ====== */
-
+    // FILTER BUTTONS
     document.querySelectorAll(".chip").forEach(chip => {
       chip.addEventListener("click", () => {
         const filter = chip.dataset.filter;
@@ -1013,8 +828,7 @@
       });
     });
 
-    /* ====== TASK EDITOR ====== */
-
+    // TASK EDITOR
     const taskSelect = document.getElementById("taskSelect");
     const phaseSelect = document.getElementById("taskPhase");
     const titleInput = document.getElementById("taskTitle");
@@ -1052,8 +866,8 @@
       ownerInput.value  = task.owner;
       phaseSelect.value = task.phaseId;
       statusSelect.value = task.status;
-      startInput.value  = task.start;
-      endInput.value    = task.end;
+      startInput.value  = dayToDateStr(task.startDay);
+      endInput.value    = dayToDateStr(task.endDay);
       notesInput.value  = task.notes || "";
     }
 
@@ -1071,9 +885,15 @@
       task.owner   = ownerInput.value.trim() || "--";
       task.phaseId = phaseSelect.value;
       task.status  = statusSelect.value;
-      if (startInput.value) task.start = startInput.value;
-      if (endInput.value)   task.end   = endInput.value;
-      task.notes   = notesInput.value.trim();
+
+      const sd = dateStrToDay(startInput.value);
+      const ed = dateStrToDay(endInput.value);
+      if (sd && ed && sd < ed) {
+        task.startDay = sd;
+        task.endDay   = ed;
+      }
+
+      task.notes = notesInput.value.trim();
 
       populateTaskSelect();
       renderTasks(document.querySelector(".chip--active").dataset.filter);
@@ -1083,14 +903,19 @@
 
     document.getElementById("addTaskBtn").addEventListener("click", () => {
       const newId = tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+      let sd = dateStrToDay(startInput.value) || 1;
+      let ed = dateStrToDay(endInput.value) || (sd + 1);
+      if (ed <= sd) ed = sd + 1;
+      if (ed > TOTAL_DAYS) ed = TOTAL_DAYS;
+
       const newTask = {
         id: newId,
         title: titleInput.value.trim() || "New Task",
         owner: ownerInput.value.trim() || "--",
         phaseId: phaseSelect.value,
         status: statusSelect.value,
-        start: startInput.value || "2025-11-01",
-        end:   endInput.value   || "2025-11-02",
+        startDay: sd,
+        endDay: ed,
         notes: notesInput.value.trim(),
       };
       tasks.push(newTask);
@@ -1100,17 +925,12 @@
       showTaskDetails(newId);
     });
 
-    /* ====== INIT ====== */
-
-    const today = new Date();
-    const tooltipEl = document.getElementById("tooltip");
-
+    // INIT
     populatePhaseSelect();
     populateTaskSelect();
+    renderTasks("all");
     fillEditorWithTask(tasks[0].id);
     showTaskDetails(tasks[0].id);
-    renderTasks("all");
-    renderTodayLine();
   </script>
 </body>
 </html>
