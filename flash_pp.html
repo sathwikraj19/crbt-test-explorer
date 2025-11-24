@@ -14,7 +14,6 @@
       --chip-bg: #eef2ff;
       --radius-lg: 16px;
       --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.13);
-      --grid-line: #e5e7eb;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -148,6 +147,7 @@
       flex-direction: column;
       justify-content: center;
       box-sizing: border-box;
+      cursor: pointer;
     }
 
     .phase-title { font-size: 13px; font-weight: 600; }
@@ -175,8 +175,21 @@
 
     .timeline-grid { position: relative; }
     .timeline-grid-row {
-      border-bottom: 1px dashed rgba(148,163,184,0.35); /* match phase rows */
+      border-bottom: 1px dashed rgba(148,163,184,0.35);
       position: relative;
+      cursor: pointer;
+    }
+
+    .row-highlight {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: rgba(250,204,21,0.08);
+      border-top: 1px solid rgba(250,204,21,0.7);
+      border-bottom: 1px solid rgba(250,204,21,0.7);
+      pointer-events: none;
+      z-index: 2;
     }
 
     .task-bar {
@@ -419,8 +432,9 @@
               </div>
 
               <div id="todayLine" class="today-line"></div>
-
-              <div class="timeline-grid" id="timelineGrid"></div>
+              <div class="timeline-grid" id="timelineGrid">
+                <div id="rowHighlight" class="row-highlight"></div>
+              </div>
             </div>
           </section>
         </div>
@@ -515,6 +529,7 @@
       const YEAR = 2025;
       const MONTH_INDEX = 10; // November
       const TOTAL_DAYS = 30;
+      const STORAGE_KEY = "flashGanttTasks_v1";
 
       const phases = [
         { id: "kickoff",    title: "Requirement & Kickoff",              sub: "Scope freeze, timelines, use cases, dependencies",      color: "#6366f1" },
@@ -525,7 +540,7 @@
         { id: "golive",     title: "Go-Live & Hypercare",                sub: "Cutover, monitoring, handover to operations",            color: "#111827" }
       ];
 
-      let tasks = [
+      const defaultTasks = [
         { id: 1,  phaseId: "kickoff",    title: "Project Kick-off & Scope Freeze",  owner: "SR", status: "done",     startDay: 1,  endDay: 3,
           notes: "Kick-off meeting with client; agree on scope and milestones." },
         { id: 2,  phaseId: "kickoff",    title: "Requirement Walkthrough & KT",     owner: "PM", status: "on-going", startDay: 2,  endDay: 6,
@@ -549,6 +564,34 @@
         { id:11,  phaseId: "golive",     title: "Hypercare & Handover",             owner: "SR", status: "upcoming", startDay: 29, endDay: 30,
           notes: "Monitor KPIs and handover to ops." }
       ];
+
+      let tasks = [];
+
+      function loadTasks() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length) {
+              tasks = parsed;
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn("Could not load saved tasks, using defaults.", e);
+        }
+        tasks = JSON.parse(JSON.stringify(defaultTasks));
+      }
+
+      function persistTasks() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        } catch (e) {
+          console.warn("Could not save tasks.", e);
+        }
+      }
+
+      loadTasks();
 
       // "Today" line day index (1..TOTAL_DAYS)
       let todayDay = (function initTodayDay() {
@@ -583,6 +626,7 @@
       const detailsEl   = document.getElementById("taskDetails");
       const selectedStatusLabel = document.getElementById("selectedStatusLabel");
       const todayLineEl = document.getElementById("todayLine");
+      const rowHighlightEl = document.getElementById("rowHighlight");
 
       const taskSelect  = document.getElementById("taskSelect");
       const phaseSelect = document.getElementById("taskPhase");
@@ -594,6 +638,8 @@
       const notesInput  = document.getElementById("taskNotes");
       const downloadBtn = document.getElementById("downloadBtn");
 
+      let currentHighlightPhaseId = "config";
+
       function buildPhases() {
         phases.forEach(function(phase) {
           const li = document.createElement("li");
@@ -602,6 +648,10 @@
           li.innerHTML =
             '<div class="phase-title" contenteditable="true">' + phase.title + '</div>' +
             '<div class="phase-sub" contenteditable="true">' + phase.sub + '</div>';
+          li.addEventListener("click", function() {
+            currentHighlightPhaseId = phase.id;
+            updateHighlightPosition();
+          });
           phaseListEl.appendChild(li);
         });
       }
@@ -622,6 +672,10 @@
           const row = document.createElement("div");
           row.className = "timeline-grid-row";
           row.dataset.phaseId = phase.id;
+          row.addEventListener("click", function() {
+            currentHighlightPhaseId = phase.id;
+            updateHighlightPosition();
+          });
           gridEl.appendChild(row);
         });
       }
@@ -834,6 +888,7 @@
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
 
+        persistTasks();
         populateTaskSelect();
         renderTasks(document.querySelector(".chip--active").dataset.filter);
         fillEditorWithTask(task.id);
@@ -912,6 +967,16 @@
         });
 
         attachTaskEvents();
+        updateHighlightPosition();
+      }
+
+      function updateHighlightPosition() {
+        const row = document.querySelector('.timeline-grid-row[data-phase-id="' + currentHighlightPhaseId + '"]');
+        if (!row) return;
+        const top = row.offsetTop;
+        const height = row.offsetHeight || 70;
+        rowHighlightEl.style.top = top + "px";
+        rowHighlightEl.style.height = height + "px";
       }
 
       function fillEditorWithTask(taskId) {
@@ -965,6 +1030,7 @@
 
         task.notes = notesInput.value.trim();
 
+        persistTasks();
         populateTaskSelect();
         renderTasks(document.querySelector(".chip--active").dataset.filter);
         fillEditorWithTask(id);
@@ -990,6 +1056,7 @@
           notes: notesInput.value.trim()
         };
         tasks.push(newTask);
+        persistTasks();
         populateTaskSelect();
         renderTasks(document.querySelector(".chip--active").dataset.filter);
         fillEditorWithTask(newId);
@@ -1055,7 +1122,10 @@
         showTaskDetails(tasks[0].id);
       }
       positionTodayLine();
-      window.addEventListener("resize", positionTodayLine);
+      window.addEventListener("resize", function() {
+        positionTodayLine();
+        updateHighlightPosition();
+      });
     }
 
     window.addEventListener("load", initGantt);
