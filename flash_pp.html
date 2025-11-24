@@ -254,7 +254,7 @@
     /* vertical red line */
     .today-line {
       position: absolute;
-      top: 40px;   /* will be adjusted in JS */
+      top: 40px;   /* adjusted in JS */
       bottom: 0;
       width: 2px;
       background: #ef4444;
@@ -517,7 +517,7 @@
         { id: "config",     title: "Flash Config & Routing",         sub: "Environment readiness, service config, routing tables",  color: "#0ea5e9" },
         { id: "integration",title: "Integrations (SDP / IVR / Charging)", sub: "SDP, IVR, SMSC, charging & reporting integrations", color: "#22c55e" },
         { id: "sit",        title: "System Integration Testing (SIT)",sub: "Core flows, negative scenarios, capacity & failover",   color: "#6366f1" },
-        { id: "uat",        title: "User Acceptance Testing (UAT)",  sub: "Client test execution, defect fixing & sign-off",        color: #0ea5e9 },
+        { id: "uat",        title: "User Acceptance Testing (UAT)",  sub: "Client test execution, defect fixing & sign-off",        color: "#0ea5e9" },
         { id: "golive",     title: "Go-Live & Hypercare",            sub: "Cutover, monitoring, handover to operations",            color: "#111827" }
       ];
 
@@ -778,7 +778,7 @@
           if (newStart >= newEnd) newStart = newEnd - 1;
         } else if (dragState.mode === "right") {
           newEnd = dragState.endDay + deltaDays;
-          if (newEnd > TOTAL_DAYS) { newEnd = TOTAL_DAYS; }
+          if (newEnd > TOTAL_DAYS) newEnd = TOTAL_DAYS;
           if (newEnd <= newStart) newEnd = newStart + 1;
         }
 
