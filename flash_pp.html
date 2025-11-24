@@ -290,6 +290,43 @@
       background: #ef4444;
     }
 
+    /* bottom timeline bar */
+    .timeline-footer {
+      margin-top: 4px;
+      padding: 4px 8px 6px;
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .timeline-footer-label {
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .timeline-footer-track {
+      position: relative;
+      flex: 1;
+      height: 26px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .timeline-footer-tick {
+      position: absolute;
+      top: -6px;
+      transform: translateX(-50%);
+      font-size: 9px;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .timeline-footer-tick::before {
+      content: "";
+      display: block;
+      width: 1px;
+      height: 6px;
+      background: #cbd5f5;
+      margin: 0 auto 2px auto;
+    }
+
     .panel {
       background: rgba(255,255,255,0.94);
       border-radius: var(--radius-lg);
@@ -392,7 +429,7 @@
   <div class="page">
     <div class="topbar">
       <div contenteditable="true">Flash Service Project Plan</div>
-      <small>Year: 2025 &nbsp;•&nbsp; Month: November</small>
+      <small>31-10-2025 • 15-01-2026</small>
     </div>
 
     <div class="main-layout">
@@ -432,8 +469,15 @@
               </div>
 
               <div id="todayLine" class="today-line"></div>
+
               <div class="timeline-grid" id="timelineGrid">
                 <div id="rowHighlight" class="row-highlight"></div>
+              </div>
+
+              <!-- Bottom timeline bar -->
+              <div class="timeline-footer">
+                <div class="timeline-footer-label">Timeline</div>
+                <div class="timeline-footer-track" id="timelineFooterTrack"></div>
               </div>
             </div>
           </section>
@@ -526,10 +570,27 @@
 
   <script>
     function initGantt() {
-      const YEAR = 2025;
-      const MONTH_INDEX = 10; // November
-      const TOTAL_DAYS = 30;
-      const STORAGE_KEY = "flashGanttTasks_v1";
+      // Range: 31-10-2025 to 15-01-2026  (77 days)
+      const BASE_YEAR  = 2025;
+      const BASE_MONTH = 9;   // October (0-based)
+      const BASE_DAY   = 31;
+      const TOTAL_DAYS = 77;
+      const STORAGE_KEY = "flashGanttTasks_v2";
+
+      const baseDate = new Date(BASE_YEAR, BASE_MONTH, BASE_DAY);
+
+      function indexToDate(idx) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + (idx - 1));
+        return d;
+      }
+
+      function dateToIndex(d) {
+        const diffMs = d - baseDate;
+        const idx = Math.floor(diffMs / 86400000) + 1;
+        if (idx < 1 || idx > TOTAL_DAYS) return null;
+        return idx;
+      }
 
       const phases = [
         { id: "kickoff",    title: "Requirement & Kickoff",              sub: "Scope freeze, timelines, use cases, dependencies",      color: "#6366f1" },
@@ -540,28 +601,29 @@
         { id: "golive",     title: "Go-Live & Hypercare",                sub: "Cutover, monitoring, handover to operations",            color: "#111827" }
       ];
 
+      // Old tasks were 1–30 Nov; now shift +1 so 2..31 (since day 1 is 31-Oct)
       const defaultTasks = [
-        { id: 1,  phaseId: "kickoff",    title: "Project Kick-off & Scope Freeze",  owner: "SR", status: "done",     startDay: 1,  endDay: 3,
+        { id: 1,  phaseId: "kickoff",    title: "Project Kick-off & Scope Freeze",  owner: "SR", status: "done",     startDay: 2,  endDay: 4,
           notes: "Kick-off meeting with client; agree on scope and milestones." },
-        { id: 2,  phaseId: "kickoff",    title: "Requirement Walkthrough & KT",     owner: "PM", status: "on-going", startDay: 2,  endDay: 6,
+        { id: 2,  phaseId: "kickoff",    title: "Requirement Walkthrough & KT",     owner: "PM", status: "on-going", startDay: 3,  endDay: 7,
           notes: "Detailed walkthrough of flows, charging rules, reporting and alarms." },
-        { id: 3,  phaseId: "config",     title: "Environment Readiness (UAT Flash)",owner: "RK", status: "on-going", startDay: 4,  endDay: 8,
+        { id: 3,  phaseId: "config",     title: "Environment Readiness (UAT Flash)",owner: "RK", status: "on-going", startDay: 5,  endDay: 9,
           notes: "Validate UAT servers, connectivity, certificates and base installation." },
-        { id: 4,  phaseId: "config",     title: "Flash Service Config & Routing",   owner: "SR", status: "upcoming", startDay: 7,  endDay: 14,
+        { id: 4,  phaseId: "config",     title: "Flash Service Config & Routing",   owner: "SR", status: "upcoming", startDay: 8,  endDay: 15,
           notes: "Configure Flash apps, IN parameters, routing logic and failover." },
-        { id: 5,  phaseId: "integration",title: "SDP / IVR Integration",            owner: "AB", status: "upcoming", startDay: 11, endDay: 18,
+        { id: 5,  phaseId: "integration",title: "SDP / IVR Integration",            owner: "AB", status: "upcoming", startDay: 12, endDay: 19,
           notes: "End-to-end signalling integration with SDP/IVR and callbacks." },
-        { id: 6,  phaseId: "integration",title: "Charging & Billing Validation",    owner: "RK", status: "upcoming", startDay: 15, endDay: 20,
+        { id: 6,  phaseId: "integration",title: "Charging & Billing Validation",    owner: "RK", status: "upcoming", startDay: 16, endDay: 21,
           notes: "Validate rate plans, free/chargeable flows and CDR generation." },
-        { id: 7,  phaseId: "sit",        title: "SIT – Core Call Flows",            owner: "SR", status: "upcoming", startDay: 19, endDay: 23,
+        { id: 7,  phaseId: "sit",        title: "SIT – Core Call Flows",            owner: "SR", status: "upcoming", startDay: 20, endDay: 24,
           notes: "Run core inbound/outbound scenarios and happy paths." },
-        { id: 8,  phaseId: "sit",        title: "SIT – Negative & Load",            owner: "AB", status: "upcoming", startDay: 22, endDay: 28,
+        { id: 8,  phaseId: "sit",        title: "SIT – Negative & Load",            owner: "AB", status: "upcoming", startDay: 23, endDay: 29,
           notes: "Negative, timeout, retry and basic load tests." },
-        { id: 9,  phaseId: "uat",        title: "Client UAT Cycle",                 owner: "PM", status: "upcoming", startDay: 24, endDay: 30,
+        { id: 9,  phaseId: "uat",        title: "Client UAT Cycle",                 owner: "PM", status: "upcoming", startDay: 25, endDay: 31,
           notes: "Client executes UAT, track defects and obtain sign-off." },
-        { id:10,  phaseId: "golive",     title: "Production Cutover & Sanity",      owner: "RK", status: "upcoming", startDay: 26, endDay: 28,
+        { id:10,  phaseId: "golive",     title: "Production Cutover & Sanity",      owner: "RK", status: "upcoming", startDay: 27, endDay: 29,
           notes: "Cutover to PROD and sanity checks." },
-        { id:11,  phaseId: "golive",     title: "Hypercare & Handover",             owner: "SR", status: "upcoming", startDay: 29, endDay: 30,
+        { id:11,  phaseId: "golive",     title: "Hypercare & Handover",             owner: "SR", status: "upcoming", startDay: 30, endDay: 31,
           notes: "Monitor KPIs and handover to ops." }
       ];
 
@@ -577,47 +639,17 @@
               return;
             }
           }
-        } catch (e) {
-          console.warn("Could not load saved tasks, using defaults.", e);
-        }
+        } catch (e) { console.warn("Could not load tasks", e); }
         tasks = JSON.parse(JSON.stringify(defaultTasks));
       }
 
       function persistTasks() {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-        } catch (e) {
-          console.warn("Could not save tasks.", e);
-        }
+        } catch (e) { console.warn("Could not save tasks", e); }
       }
 
       loadTasks();
-
-      // "Today" line day index (1..TOTAL_DAYS)
-      let todayDay = (function initTodayDay() {
-        const t = new Date();
-        if (t.getFullYear() === YEAR && t.getMonth() === MONTH_INDEX &&
-            t.getDate() >= 1 && t.getDate() <= TOTAL_DAYS) {
-          return t.getDate();
-        }
-        return Math.ceil(TOTAL_DAYS / 2);
-      })();
-
-      function dayToDateStr(day) {
-        const d = new Date(YEAR, MONTH_INDEX, day);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        return yyyy + "-" + mm + "-" + dd;
-      }
-
-      function dateStrToDay(str) {
-        if (!str) return null;
-        const d = new Date(str);
-        if (isNaN(d)) return null;
-        if (d.getFullYear() !== YEAR || d.getMonth() !== MONTH_INDEX) return null;
-        return d.getDate();
-      }
 
       const phaseListEl = document.getElementById("phaseList");
       const headerRowEl = document.getElementById("timelineHeaderRow");
@@ -627,6 +659,7 @@
       const selectedStatusLabel = document.getElementById("selectedStatusLabel");
       const todayLineEl = document.getElementById("todayLine");
       const rowHighlightEl = document.getElementById("rowHighlight");
+      const footerTrackEl = document.getElementById("timelineFooterTrack");
 
       const taskSelect  = document.getElementById("taskSelect");
       const phaseSelect = document.getElementById("taskPhase");
@@ -639,6 +672,29 @@
       const downloadBtn = document.getElementById("downloadBtn");
 
       let currentHighlightPhaseId = "config";
+
+      function dayToDateStr(idx) {
+        const d = indexToDate(idx);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return yyyy + "-" + mm + "-" + dd;
+      }
+
+      function dateStrToDay(str) {
+        if (!str) return null;
+        const d = new Date(str);
+        if (isNaN(d)) return null;
+        return dateToIndex(d);
+      }
+
+      function initTodayIndex() {
+        const now = new Date();
+        const idx = dateToIndex(now);
+        if (idx) return idx;
+        return Math.ceil(TOTAL_DAYS / 2);
+      }
+      let todayDay = initTodayIndex();
 
       function buildPhases() {
         phases.forEach(function(phase) {
@@ -657,8 +713,9 @@
       }
 
       function buildHeaderDays() {
-        for (let day = 1; day <= TOTAL_DAYS; day++) {
-          const d = new Date(YEAR, MONTH_INDEX, day);
+        for (let idx = 1; idx <= TOTAL_DAYS; idx++) {
+          const d = indexToDate(idx);
+          const day = d.getDate();
           const short = d.toLocaleDateString("en-GB", { weekday: "short" });
           const cell = document.createElement("div");
           cell.className = "timeline-day";
@@ -677,6 +734,28 @@
             updateHighlightPosition();
           });
           gridEl.appendChild(row);
+        });
+      }
+
+      function buildFooterTimeline() {
+        const milestones = [
+          "2025-10-31", "2025-11-10", "2025-11-20", "2025-11-30",
+          "2025-12-10", "2025-12-20", "2026-01-02", "2026-01-15"
+        ];
+        const labels = [
+          "31-10-2025", "10-11-2025", "20-11-2025", "30-11-2025",
+          "10-12-2025", "20-12-2025", "02-01-2026", "15-01-2026"
+        ];
+        footerTrackEl.innerHTML = "";
+        milestones.forEach(function(dateStr, i) {
+          const idx = dateStrToDay(dateStr);
+          if (!idx) return;
+          const leftPercent = (idx - 1) / (TOTAL_DAYS - 1) * 100;
+          const tick = document.createElement("div");
+          tick.className = "timeline-footer-tick";
+          tick.style.left = leftPercent + "%";
+          tick.textContent = labels[i];
+          footerTrackEl.appendChild(tick);
         });
       }
 
@@ -895,11 +974,9 @@
         showTaskDetails(task.id);
       }
 
-      // Render all tasks and sync row heights
       function renderTasks(filterStatus) {
         clearTaskBars();
 
-        // reset heights to let browser measure naturally
         document.querySelectorAll(".timeline-grid-row").forEach(function(row) {
           row.style.height = "auto";
         });
@@ -952,13 +1029,12 @@
           });
         });
 
-        // After pills are in place, sync each phase row height with its timeline row
         phases.forEach(function(phase) {
           const row = document.querySelector('.timeline-grid-row[data-phase-id="' + phase.id + '"]');
           const phaseRow = document.querySelector('.phase-row[data-phase-id="' + phase.id + '"]');
           if (!row || !phaseRow) return;
 
-          const contentHeight = row.scrollHeight;  // includes bars
+          const contentHeight = row.scrollHeight;
           const textHeight = phaseRow.scrollHeight;
           const targetHeight = Math.max(minHeight, contentHeight, textHeight);
 
@@ -992,7 +1068,6 @@
         notesInput.value    = task.notes || "";
       }
 
-      // Filter chips
       document.querySelectorAll(".chip").forEach(function(chip) {
         chip.addEventListener("click", function() {
           const filter = chip.dataset.filter;
@@ -1004,13 +1079,11 @@
         });
       });
 
-      // Task selector
       taskSelect.addEventListener("change", function() {
         fillEditorWithTask(taskSelect.value);
         showTaskDetails(Number(taskSelect.value));
       });
 
-      // Save / update
       document.getElementById("saveTaskBtn").addEventListener("click", function() {
         const id = Number(taskSelect.value);
         const task = tasks.find(function(t) { return t.id === id; });
@@ -1037,7 +1110,6 @@
         showTaskDetails(id);
       });
 
-      // Add new task
       document.getElementById("addTaskBtn").addEventListener("click", function() {
         const newId = tasks.length ? Math.max.apply(null, tasks.map(function(t){return t.id;})) + 1 : 1;
         let sd = dateStrToDay(startInput.value) || 1;
@@ -1063,7 +1135,6 @@
         showTaskDetails(newId);
       });
 
-      // Download JSON plan
       downloadBtn.addEventListener("click", function() {
         const dataStr = JSON.stringify(tasks, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
@@ -1077,7 +1148,6 @@
         URL.revokeObjectURL(url);
       });
 
-      // Drag the red "today" line
       let todayDrag = null;
       todayLineEl.addEventListener("mousedown", function(e) {
         e.preventDefault();
@@ -1110,10 +1180,10 @@
         document.removeEventListener("mouseup", onTodayUp);
       }
 
-      // Initial bootstrapping
       buildPhases();
       buildHeaderDays();
       buildGridRows();
+      buildFooterTimeline();
       populatePhaseSelect();
       populateTaskSelect();
       renderTasks("all");
