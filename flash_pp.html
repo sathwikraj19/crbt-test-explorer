@@ -140,10 +140,14 @@
     .phases-list { list-style: none; }
 
     .phase-row {
-      padding: 10px 10px;
+      padding: 8px 10px;
       border-bottom: 1px dashed rgba(148,163,184,0.35);
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-sizing: border-box;
     }
 
     .phase-title { font-size: 13px; font-weight: 600; }
@@ -738,10 +742,8 @@
             showTaskDetails(taskId);
           });
 
-          // drag start
           bar.addEventListener("mousedown", function(e) {
             e.preventDefault();
-
             tooltipEl.classList.remove("visible");
 
             const row = bar.parentElement;
@@ -838,10 +840,11 @@
         showTaskDetails(task.id);
       }
 
-      // Render all tasks with heights based on ALL tasks per phase
+      // Render all tasks and sync row heights
       function renderTasks(filterStatus) {
         clearTaskBars();
 
+        // reset heights to let browser measure naturally
         document.querySelectorAll(".timeline-grid-row").forEach(function(row) {
           row.style.height = "auto";
         });
@@ -860,11 +863,6 @@
           const row = document.querySelector('.timeline-grid-row[data-phase-id="' + phaseId + '"]');
           const phaseRow = document.querySelector('.phase-row[data-phase-id="' + phaseId + '"]');
           if (!row || !phaseRow) return;
-
-          const laneCount = Math.max(allTasks.length, 1);
-          const rowHeight = Math.max(minHeight, baseTop * 2 + laneGap * laneCount);
-          row.style.height = rowHeight + "px";
-          phaseRow.style.height = rowHeight + "px";
 
           const visible = allTasks.filter(function(task) {
             return filterStatus === "all" || task.status === filterStatus;
@@ -897,6 +895,20 @@
             const idx = laneIndex >= 0 ? laneIndex : 0;
             bar.style.top = (baseTop + idx * laneGap) + "px";
           });
+        });
+
+        // After pills are in place, sync each phase row height with its timeline row
+        phases.forEach(function(phase) {
+          const row = document.querySelector('.timeline-grid-row[data-phase-id="' + phase.id + '"]');
+          const phaseRow = document.querySelector('.phase-row[data-phase-id="' + phase.id + '"]');
+          if (!row || !phaseRow) return;
+
+          const contentHeight = row.scrollHeight;  // includes bars
+          const textHeight = phaseRow.scrollHeight;
+          const targetHeight = Math.max(minHeight, contentHeight, textHeight);
+
+          row.style.height = targetHeight + "px";
+          phaseRow.style.height = targetHeight + "px";
         });
 
         attachTaskEvents();
