@@ -168,15 +168,14 @@
 
     .timeline-grid { position: relative; }
     .timeline-grid-row {
-      height: 60px;
+      min-height: 60px;
       border-top: 1px solid var(--grid-line);
       position: relative;
     }
 
     .task-bar {
       position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
+      /* top is set per-task in JS now, no translateY */
       height: 22px;
       border-radius: 999px;
       display: inline-flex;
@@ -471,6 +470,7 @@
           <div class="btn-row">
             <button class="btn btn-primary" type="button" id="saveTaskBtn">Save / Update Task</button>
             <button class="btn btn-secondary" type="button" id="addTaskBtn">Add as New Task</button>
+            <button class="btn btn-secondary" type="button" id="downloadBtn">Download JSON</button>
           </div>
         </div>
       </aside>
@@ -481,9 +481,8 @@
 
   <script>
     function initGantt() {
-      // --- CONFIG: November 2025 (1–30) ---
       const YEAR = 2025;
-      const MONTH_INDEX = 10; // 0 = Jan, 10 = Nov
+      const MONTH_INDEX = 10; // Nov
       const TOTAL_DAYS = 30;
 
       const phases = [
@@ -520,7 +519,6 @@
           notes: "Monitor KPIs and handover to ops." }
       ];
 
-      // ---- helper: dates ----
       function dayToDateStr(day) {
         const d = new Date(YEAR, MONTH_INDEX, day);
         const yyyy = d.getFullYear();
@@ -537,7 +535,6 @@
         return d.getDate();
       }
 
-      // ---- DOM refs ----
       const phaseListEl = document.getElementById("phaseList");
       const headerRowEl = document.getElementById("timelineHeaderRow");
       const gridEl      = document.getElementById("timelineGrid");
@@ -553,8 +550,8 @@
       const startInput  = document.getElementById("taskStart");
       const endInput    = document.getElementById("taskEnd");
       const notesInput  = document.getElementById("taskNotes");
+      const downloadBtn = document.getElementById("downloadBtn");
 
-      // ---- build static parts ----
       function buildPhases() {
         phases.forEach(function(phase) {
           const li = document.createElement("li");
@@ -587,7 +584,6 @@
         });
       }
 
-      // ---- editor dropdowns ----
       function populatePhaseSelect() {
         phaseSelect.innerHTML = "";
         phases.forEach(function(p) {
@@ -608,7 +604,6 @@
         });
       }
 
-      // ---- positioning & details ----
       function positionBar(bar, startDay, endDay) {
         const leftPercent  = (startDay - 1) / TOTAL_DAYS * 100;
         const widthPercent = (endDay - startDay + 1) / TOTAL_DAYS * 100;
@@ -648,7 +643,6 @@
         tooltipEl.style.top  = e.clientY + padding + "px";
       }
 
-      // ---- drag & resize ----
       let dragState = null;
 
       function attachTaskEvents() {
@@ -785,44 +779,64 @@
         showTaskDetails(task.id);
       }
 
-      // ---- render all tasks ----
+      // KEY CHANGE: stack tasks per phase on separate lines
       function renderTasks(filterStatus) {
         clearTaskBars();
+
+        // reset row heights
+        document.querySelectorAll(".timeline-grid-row").forEach(function(row) {
+          row.style.height = "60px";
+        });
+
+        // group tasks by phase (only those that match filter)
+        const tasksPerPhase = {};
         tasks.forEach(function(task) {
           if (filterStatus !== "all" && task.status !== filterStatus) return;
+          if (!tasksPerPhase[task.phaseId]) tasksPerPhase[task.phaseId] = [];
+          tasksPerPhase[task.phaseId].push(task);
+        });
 
+        const baseTop = 8;    // px from top
+        const laneGap = 26;   // vertical spacing between pills
+
+        Object.keys(tasksPerPhase).forEach(function(phaseId) {
           const row = document.querySelector(
-            '.timeline-grid-row[data-phase-id="' + task.phaseId + '"]'
+            '.timeline-grid-row[data-phase-id="' + phaseId + '"]'
           );
           if (!row) return;
+          const list = tasksPerPhase[phaseId];
+          const rowHeight = baseTop * 2 + laneGap * list.length;
+          row.style.height = rowHeight + "px";
 
-          const bar = document.createElement("div");
-          bar.className = "task-bar";
-          bar.dataset.taskId = task.id;
-          bar.dataset.status = task.status;
+          list.forEach(function(task, index) {
+            const bar = document.createElement("div");
+            bar.className = "task-bar";
+            bar.dataset.taskId = task.id;
+            bar.dataset.status = task.status;
 
-          const phase = phases.find(function(p) { return p.id === task.phaseId; });
-          bar.style.background = phase ? phase.color : "#6366f1";
+            const phase = phases.find(function(p) { return p.id === task.phaseId; });
+            bar.style.background = phase ? phase.color : "#6366f1";
 
-          const statusLabel =
-            task.status === "done" ? "Done" :
-            task.status === "on-going" ? "On-Going" : "Upcoming";
+            const statusLabel =
+              task.status === "done" ? "Done" :
+              task.status === "on-going" ? "On-Going" : "Upcoming";
 
-          bar.innerHTML =
-            '<span class="resize-handle resize-left"></span>' +
-            '<span class="task-pill">' + statusLabel + '</span>' +
-            '<span class="task-title">' + task.title + '</span>' +
-            '<span class="task-avatar">' + task.owner + '</span>' +
-            '<span class="resize-handle resize-right"></span>';
+            bar.innerHTML =
+              '<span class="resize-handle resize-left"></span>' +
+              '<span class="task-pill">' + statusLabel + '</span>' +
+              '<span class="task-title">' + task.title + '</span>' +
+              '<span class="task-avatar">' + task.owner + '</span>' +
+              '<span class="resize-handle resize-right"></span>';
 
-          row.appendChild(bar);
-          positionBar(bar, task.startDay, task.endDay);
+            row.appendChild(bar);
+            positionBar(bar, task.startDay, task.endDay);
+            bar.style.top = (baseTop + index * laneGap) + "px";
+          });
         });
 
         attachTaskEvents();
       }
 
-      // ---- editor helpers ----
       function fillEditorWithTask(taskId) {
         const task = tasks.find(function(t) { return t.id === Number(taskId); });
         if (!task) return;
@@ -836,7 +850,6 @@
         notesInput.value    = task.notes || "";
       }
 
-      // ---- filters ----
       document.querySelectorAll(".chip").forEach(function(chip) {
         chip.addEventListener("click", function() {
           const filter = chip.dataset.filter;
@@ -848,7 +861,6 @@
         });
       });
 
-      // ---- editor events ----
       taskSelect.addEventListener("change", function() {
         fillEditorWithTask(taskSelect.value);
         showTaskDetails(Number(taskSelect.value));
@@ -903,21 +915,32 @@
         showTaskDetails(newId);
       });
 
-      // ---- initial build ----
+      // Download JSON of current plan
+      downloadBtn.addEventListener("click", function() {
+        const dataStr = JSON.stringify(tasks, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "flash_project_plan.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
       buildPhases();
       buildHeaderDays();
       buildGridRows();
       populatePhaseSelect();
       populateTaskSelect();
       renderTasks("all");
-
       if (tasks.length > 0) {
         fillEditorWithTask(tasks[0].id);
         showTaskDetails(tasks[0].id);
       }
     }
 
-    // Run after DOM is ready
     window.addEventListener("load", initGantt);
   </script>
 </body>
