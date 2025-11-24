@@ -138,11 +138,12 @@
     }
 
     .phases-list { list-style: none; }
+
     .phase-row {
-      padding: 12px 10px;
+      padding: 10px 10px;
       border-bottom: 1px dashed rgba(148,163,184,0.35);
-      min-height: 60px;
       position: relative;
+      overflow: hidden;
     }
 
     .phase-title { font-size: 13px; font-weight: 600; }
@@ -170,7 +171,6 @@
 
     .timeline-grid { position: relative; }
     .timeline-grid-row {
-      min-height: 60px;
       border-top: 1px solid var(--grid-line);
       position: relative;
     }
@@ -191,6 +191,7 @@
       text-overflow: ellipsis;
       box-shadow: 0 10px 20px rgba(15,23,42,0.25);
       user-select: none;
+      z-index: 10;
     }
     .task-bar:active { cursor: grabbing; }
     .task-bar.drag-highlight {
@@ -250,7 +251,7 @@
     .tooltip-title { font-weight: 600; margin-bottom: 4px; color: #f9fafb; }
     .tooltip-line { display: flex; justify-content: space-between; gap: 12px; }
 
-    /* vertical red line ("today") */
+    /* vertical red line */
     .today-line {
       position: absolute;
       top: 40px;   /* will be adjusted in JS */
@@ -258,7 +259,7 @@
       width: 2px;
       background: #ef4444;
       box-shadow: 0 0 0 1px rgba(248,113,113,0.6);
-      z-index: 6;
+      z-index: 5;
       pointer-events: none;
     }
     .today-line::before {
@@ -412,7 +413,7 @@
               <div class="timeline-header">
                 <div class="timeline-header-row" id="timelineHeaderRow"></div>
               </div>
-              <!-- red vertical line -->
+
               <div id="todayLine" class="today-line"></div>
 
               <div class="timeline-grid" id="timelineGrid"></div>
@@ -516,7 +517,7 @@
         { id: "config",     title: "Flash Config & Routing",         sub: "Environment readiness, service config, routing tables",  color: "#0ea5e9" },
         { id: "integration",title: "Integrations (SDP / IVR / Charging)", sub: "SDP, IVR, SMSC, charging & reporting integrations", color: "#22c55e" },
         { id: "sit",        title: "System Integration Testing (SIT)",sub: "Core flows, negative scenarios, capacity & failover",   color: "#6366f1" },
-        { id: "uat",        title: "User Acceptance Testing (UAT)",  sub: "Client test execution, defect fixing & sign-off",        color: "#0ea5e9" },
+        { id: "uat",        title: "User Acceptance Testing (UAT)",  sub: "Client test execution, defect fixing & sign-off",        color: #0ea5e9 },
         { id: "golive",     title: "Go-Live & Hypercare",            sub: "Cutover, monitoring, handover to operations",            color: "#111827" }
       ];
 
@@ -622,7 +623,6 @@
         if (today.getFullYear() === YEAR && today.getMonth() === MONTH_INDEX) {
           day = today.getDate();
         }
-
         if (!day || day < 1 || day > TOTAL_DAYS) {
           day = Math.ceil(TOTAL_DAYS / 2); // center if not this month
         }
@@ -778,7 +778,7 @@
           if (newStart >= newEnd) newStart = newEnd - 1;
         } else if (dragState.mode === "right") {
           newEnd = dragState.endDay + deltaDays;
-          if (newEnd > TOTAL_DAYS) newEnd = TOTAL_DAYS;
+          if (newEnd > TOTAL_DAYS) { newEnd = TOTAL_DAYS; }
           if (newEnd <= newStart) newEnd = newStart + 1;
         }
 
@@ -826,16 +826,15 @@
         showTaskDetails(task.id);
       }
 
-      // STACKING + HEIGHT SYNC
       function renderTasks(filterStatus) {
         clearTaskBars();
 
-        // reset heights
+        // reset heights to auto
         document.querySelectorAll(".timeline-grid-row").forEach(function(row) {
-          row.style.height = "60px";
+          row.style.height = "auto";
         });
         document.querySelectorAll(".phase-row").forEach(function(row) {
-          row.style.height = "60px";
+          row.style.height = "auto";
         });
 
         const tasksPerPhase = {};
@@ -845,8 +844,9 @@
           tasksPerPhase[task.phaseId].push(task);
         });
 
-        const baseTop = 8;
+        const baseTop = 10;
         const laneGap = 26;
+        const minHeight = 60;
 
         Object.keys(tasksPerPhase).forEach(function(phaseId) {
           const row = document.querySelector(
@@ -857,8 +857,8 @@
           );
           if (!row) return;
           const list = tasksPerPhase[phaseId];
-          const rowHeight = baseTop * 2 + laneGap * list.length;
 
+          const rowHeight = Math.max(minHeight, baseTop * 2 + laneGap * list.length);
           row.style.height = rowHeight + "px";
           if (phaseRow) phaseRow.style.height = rowHeight + "px";
 
@@ -994,6 +994,7 @@
         showTaskDetails(tasks[0].id);
       }
       positionTodayLine();
+      window.addEventListener("resize", positionTodayLine);
     }
 
     window.addEventListener("load", initGantt);
