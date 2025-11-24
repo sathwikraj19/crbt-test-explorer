@@ -114,7 +114,7 @@
       border: 1px solid var(--border);
       background: var(--surface);
       display: grid;
-      grid-template-columns: 180px minmax(0, 1fr);
+      grid-template-columns: 200px minmax(0, 1fr);
       overflow: hidden;
     }
     @media (max-width: 640px) {
@@ -254,7 +254,7 @@
     /* vertical red line */
     .today-line {
       position: absolute;
-      top: 40px;   /* adjusted in JS */
+      top: 40px;
       bottom: 0;
       width: 2px;
       background: #ef4444;
@@ -624,7 +624,7 @@
           day = today.getDate();
         }
         if (!day || day < 1 || day > TOTAL_DAYS) {
-          day = Math.ceil(TOTAL_DAYS / 2); // center if not this month
+          day = Math.ceil(TOTAL_DAYS / 2); // centre if not this month
         }
 
         const leftPercent = (day - 0.5) / TOTAL_DAYS * 100;
@@ -729,9 +729,11 @@
             showTaskDetails(taskId);
           });
 
+          // drag start
           bar.addEventListener("mousedown", function(e) {
-            if (e.button !== 0) return;
             e.preventDefault();
+
+            tooltipEl.classList.remove("visible");
 
             const row = bar.parentElement;
             const rect = row.getBoundingClientRect();
@@ -787,6 +789,7 @@
 
       function onMouseUp(e) {
         if (!dragState) return;
+
         const dx = e.clientX - dragState.startX;
         const deltaDays = Math.round(dx / dragState.dayWidth);
 
@@ -844,9 +847,9 @@
           tasksPerPhase[task.phaseId].push(task);
         });
 
-        const baseTop = 10;
-        const laneGap = 26;
-        const minHeight = 60;
+        const baseTop = 14;   // more breathing room
+        const laneGap = 30;
+        const minHeight = 70;
 
         Object.keys(tasksPerPhase).forEach(function(phaseId) {
           const row = document.querySelector(
