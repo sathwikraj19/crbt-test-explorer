@@ -251,7 +251,7 @@
     .tooltip-title { font-weight: 600; margin-bottom: 4px; color: #f9fafb; }
     .tooltip-line { display: flex; justify-content: space-between; gap: 12px; }
 
-    /* vertical red line */
+    /* vertical red line (draggable) */
     .today-line {
       position: absolute;
       top: 40px;
@@ -259,8 +259,8 @@
       width: 2px;
       background: #ef4444;
       box-shadow: 0 0 0 1px rgba(248,113,113,0.6);
-      z-index: 5;
-      pointer-events: none;
+      z-index: 6;
+      cursor: ew-resize;
     }
     .today-line::before {
       content: "";
@@ -513,12 +513,12 @@
       const TOTAL_DAYS = 30;
 
       const phases = [
-        { id: "kickoff",    title: "Requirement & Kickoff",          sub: "Scope freeze, timelines, use cases, dependencies",      color: "#6366f1" },
-        { id: "config",     title: "Flash Config & Routing",         sub: "Environment readiness, service config, routing tables",  color: "#0ea5e9" },
-        { id: "integration",title: "Integrations (SDP / IVR / Charging)", sub: "SDP, IVR, SMSC, charging & reporting integrations", color: "#22c55e" },
-        { id: "sit",        title: "System Integration Testing (SIT)",sub: "Core flows, negative scenarios, capacity & failover",   color: "#6366f1" },
-        { id: "uat",        title: "User Acceptance Testing (UAT)",  sub: "Client test execution, defect fixing & sign-off",        color: "#0ea5e9" },
-        { id: "golive",     title: "Go-Live & Hypercare",            sub: "Cutover, monitoring, handover to operations",            color: "#111827" }
+        { id: "kickoff",    title: "Requirement & Kickoff",              sub: "Scope freeze, timelines, use cases, dependencies",      color: "#6366f1" },
+        { id: "config",     title: "Flash Config & Routing",             sub: "Environment readiness, service config, routing tables",  color: "#0ea5e9" },
+        { id: "integration",title: "Integrations (SDP / IVR / Charging)",sub: "SDP, IVR, SMSC, charging & reporting integrations",      color: "#22c55e" },
+        { id: "sit",        title: "System Integration Testing (SIT)",   sub: "Core flows, negative scenarios, capacity & failover",   color: "#6366f1" },
+        { id: "uat",        title: "User Acceptance Testing (UAT)",      sub: "Client test execution, defect fixing & sign-off",        color: "#0ea5e9" },
+        { id: "golive",     title: "Go-Live & Hypercare",                sub: "Cutover, monitoring, handover to operations",            color: "#111827" }
       ];
 
       let tasks = [
@@ -545,6 +545,16 @@
         { id:11,  phaseId: "golive",     title: "Hypercare & Handover",             owner: "SR", status: "upcoming", startDay: 29, endDay: 30,
           notes: "Monitor KPIs and handover to ops." }
       ];
+
+      // "Today" line day index (1..TOTAL_DAYS)
+      let todayDay = (function initTodayDay() {
+        const t = new Date();
+        if (t.getFullYear() === YEAR && t.getMonth() === MONTH_INDEX &&
+            t.getDate() >= 1 && t.getDate() <= TOTAL_DAYS) {
+          return t.getDate();
+        }
+        return Math.ceil(TOTAL_DAYS / 2);
+      })();
 
       function dayToDateStr(day) {
         const d = new Date(YEAR, MONTH_INDEX, day);
@@ -617,17 +627,7 @@
         if (headerEl) {
           todayLineEl.style.top = headerEl.offsetHeight + "px";
         }
-
-        const today = new Date();
-        let day = null;
-        if (today.getFullYear() === YEAR && today.getMonth() === MONTH_INDEX) {
-          day = today.getDate();
-        }
-        if (!day || day < 1 || day > TOTAL_DAYS) {
-          day = Math.ceil(TOTAL_DAYS / 2); // centre if not this month
-        }
-
-        const leftPercent = (day - 0.5) / TOTAL_DAYS * 100;
+        const leftPercent = (todayDay - 0.5) / TOTAL_DAYS * 100;
         todayLineEl.style.left = leftPercent + "%";
       }
 
@@ -691,6 +691,15 @@
       }
 
       let dragState = null;
+
+      function tasksByPhaseAll() {
+        const map = {};
+        tasks.forEach(function(t) {
+          if (!map[t.phaseId]) map[t.phaseId] = [];
+          map[t.phaseId].push(t);
+        });
+        return map;
+      }
 
       function attachTaskEvents() {
         document.querySelectorAll(".task-bar").forEach(function(bar) {
@@ -829,10 +838,10 @@
         showTaskDetails(task.id);
       }
 
+      // Render all tasks with heights based on ALL tasks per phase
       function renderTasks(filterStatus) {
         clearTaskBars();
 
-        // reset heights to auto
         document.querySelectorAll(".timeline-grid-row").forEach(function(row) {
           row.style.height = "auto";
         });
@@ -840,39 +849,35 @@
           row.style.height = "auto";
         });
 
-        const tasksPerPhase = {};
-        tasks.forEach(function(task) {
-          if (filterStatus !== "all" && task.status !== filterStatus) return;
-          if (!tasksPerPhase[task.phaseId]) tasksPerPhase[task.phaseId] = [];
-          tasksPerPhase[task.phaseId].push(task);
-        });
-
-        const baseTop = 14;   // more breathing room
+        const allByPhase = tasksByPhaseAll();
+        const baseTop = 14;
         const laneGap = 30;
         const minHeight = 70;
 
-        Object.keys(tasksPerPhase).forEach(function(phaseId) {
-          const row = document.querySelector(
-            '.timeline-grid-row[data-phase-id="' + phaseId + '"]'
-          );
-          const phaseRow = document.querySelector(
-            '.phase-row[data-phase-id="' + phaseId + '"]'
-          );
-          if (!row) return;
-          const list = tasksPerPhase[phaseId];
+        phases.forEach(function(phase) {
+          const phaseId = phase.id;
+          const allTasks = allByPhase[phaseId] || [];
+          const row = document.querySelector('.timeline-grid-row[data-phase-id="' + phaseId + '"]');
+          const phaseRow = document.querySelector('.phase-row[data-phase-id="' + phaseId + '"]');
+          if (!row || !phaseRow) return;
 
-          const rowHeight = Math.max(minHeight, baseTop * 2 + laneGap * list.length);
+          const laneCount = Math.max(allTasks.length, 1);
+          const rowHeight = Math.max(minHeight, baseTop * 2 + laneGap * laneCount);
           row.style.height = rowHeight + "px";
-          if (phaseRow) phaseRow.style.height = rowHeight + "px";
+          phaseRow.style.height = rowHeight + "px";
 
-          list.forEach(function(task, index) {
+          const visible = allTasks.filter(function(task) {
+            return filterStatus === "all" || task.status === filterStatus;
+          });
+
+          visible.forEach(function(task) {
             const bar = document.createElement("div");
             bar.className = "task-bar";
             bar.dataset.taskId = task.id;
             bar.dataset.status = task.status;
 
-            const phase = phases.find(function(p) { return p.id === task.phaseId; });
-            bar.style.background = phase ? phase.color : "#6366f1";
+            const phaseObj = phases.find(function(p) { return p.id === task.phaseId; });
+            bar.style.background = phaseObj ? phaseObj.color : "#6366f1";
 
             const statusLabel =
               task.status === "done" ? "Done" :
@@ -887,7 +892,10 @@
 
             row.appendChild(bar);
             positionBar(bar, task.startDay, task.endDay);
-            bar.style.top = (baseTop + index * laneGap) + "px";
+
+            const laneIndex = allTasks.indexOf(task);
+            const idx = laneIndex >= 0 ? laneIndex : 0;
+            bar.style.top = (baseTop + idx * laneGap) + "px";
           });
         });
 
@@ -907,6 +915,7 @@
         notesInput.value    = task.notes || "";
       }
 
+      // Filter chips
       document.querySelectorAll(".chip").forEach(function(chip) {
         chip.addEventListener("click", function() {
           const filter = chip.dataset.filter;
@@ -918,11 +927,13 @@
         });
       });
 
+      // Task selector
       taskSelect.addEventListener("change", function() {
         fillEditorWithTask(taskSelect.value);
         showTaskDetails(Number(taskSelect.value));
       });
 
+      // Save / update
       document.getElementById("saveTaskBtn").addEventListener("click", function() {
         const id = Number(taskSelect.value);
         const task = tasks.find(function(t) { return t.id === id; });
@@ -948,6 +959,7 @@
         showTaskDetails(id);
       });
 
+      // Add new task
       document.getElementById("addTaskBtn").addEventListener("click", function() {
         const newId = tasks.length ? Math.max.apply(null, tasks.map(function(t){return t.id;})) + 1 : 1;
         let sd = dateStrToDay(startInput.value) || 1;
@@ -986,6 +998,40 @@
         URL.revokeObjectURL(url);
       });
 
+      // Drag the red "today" line
+      let todayDrag = null;
+      todayLineEl.addEventListener("mousedown", function(e) {
+        e.preventDefault();
+        const rect = gridEl.getBoundingClientRect();
+        const dayWidth = rect.width / TOTAL_DAYS;
+        todayDrag = {
+          startX: e.clientX,
+          origDay: todayDay,
+          dayWidth: dayWidth
+        };
+        document.addEventListener("mousemove", onTodayMove);
+        document.addEventListener("mouseup", onTodayUp);
+      });
+
+      function onTodayMove(e) {
+        if (!todayDrag) return;
+        const dx = e.clientX - todayDrag.startX;
+        const deltaDays = Math.round(dx / todayDrag.dayWidth);
+        let newDay = todayDrag.origDay + deltaDays;
+        if (newDay < 1) newDay = 1;
+        if (newDay > TOTAL_DAYS) newDay = TOTAL_DAYS;
+        todayDay = newDay;
+        positionTodayLine();
+      }
+
+      function onTodayUp() {
+        if (!todayDrag) return;
+        todayDrag = null;
+        document.removeEventListener("mousemove", onTodayMove);
+        document.removeEventListener("mouseup", onTodayUp);
+      }
+
+      // Initial bootstrapping
       buildPhases();
       buildHeaderDays();
       buildGridRows();
